@@ -207,12 +207,15 @@ table.cst td.k { font-weight: 700; white-space: nowrap; }
   .sheet-head h2 { font-size: 1.8rem; }
 }
 .sharelink { padding: 10px 12px; border: 2px dashed var(--line-strong); border-radius: var(--r); background: var(--surface-2); font-family: ui-monospace, Menlo, Consolas, monospace; font-size: .9rem; overflow-wrap: anywhere; user-select: all; }
+details.upg { border-top: 1px solid var(--line); padding-top: 10px; }
+details.upg summary { cursor: pointer; font-weight: 700; min-height: 32px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+details.upg .opt { margin-top: 6px; }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <div id="app"></div>
 <script>
-// Black Death City Playtest 1.03 data, transcribed from the rulebook.
+// Black Death City Playtest 1.10 data, transcribed from the rulebook.
 const M = (name, a, r, d, c, traits, cost, extra) => Object.assign({ name, cat: 'melee', a, r, d, c, traits: traits ? traits.split(', ') : [], cost }, extra || {});
 const R = (name, rng, a, r, d, c, traits, cost, extra) => Object.assign({ name, cat: 'ranged', rng, a, r, d, c, traits: traits ? traits.split(', ') : [], cost }, extra || {});
 const A = (name, sv, cost, text, extra) => Object.assign({ name, cat: 'armour', sv, cost, text: text || '' }, extra || {});
@@ -226,13 +229,15 @@ const COMMON = {
   dagger: M('Dagger', 3, '-', 1, 'd3', 'Off-hand', 10),
   ensorcelled_weapon: M('Ensorcelled Weapon', 3, '-1', 1, 'd3', 'Arcane', 26),
   flail: M('Flail', 3, '-', 1, 'd3', 'Off-hand, Wrap', 14),
-  halberd: M('Halberd', 3, '-1', 1, 'd3+1', 'Brace, Two-handed, Unwieldy', 34),
+  halberd: M('Halberd', 3, '-1', 1, 'd3+1', 'Brace, Polearm, Two-handed', 34),
   heavy_axe: M('Heavy Axe', 3, '-2', 2, 'd3+1', 'Two-handed, Unwieldy', 40),
-  spear: M('Spear', 3, '-', 1, 'd3', 'Brace, Two-handed', 16),
+  spear: M('Spear', 3, '-', 1, 'd3', 'Brace, Polearm, Two-handed', 16),
   sword: M('Sword', 3, '-', 1, 'd3', 'Guard, Off-hand', 18),
   ogre_blade: M('Ogre Blade', 3, '-1', 2, 'd3+1', 'Off-hand', 36),
-  ogre_great_weapon: M('Ogre Great Weapon', 3, '-2', 3, 'd3+2', 'Two-handed, Unwieldy', 50),
+  ogre_great_weapon: M('Ogre Great Weapon', 3, '-2', 3, 'd3+2', 'Two-handed', 50),
   ogre_mace: M('Ogre Mace', 3, '-1', 2, 'd3+1', 'Bludgeon, Off-hand', 38),
+  long_bow: R('Long Bow', '28"', 1, '-1', 'd3', 'd6', 'Heavy, Two-handed', 26),
+  short_bow: R('Short Bow', '16"', 1, '-', 1, 'd6', 'Two-handed', 16),
   cuirass: A('Cuirass', 5, 20),
   full_plate: A('Full-plate', 4, 40, 'Cannot be equipped with two-handed ranged weapons, except a Brace of Pistols.'),
   warded_robes: A('Warded Robes', 6, 10, 'Each time this fighter is targeted by an enemy spell, roll a dice. On a 4+ the spell has no effect on them.'),
@@ -248,7 +253,7 @@ const UNSHAKEABLE = { name: 'Unshakeable', text: 'Ignores the Fear special rule 
 const FEAR = { name: 'Fear', text: 'Enemy fighters that start their activation engaged in melee with this fighter must pass a Willpower test or their activation ends. Fighters that also cause fear ignore this.' };
 const WARDS = { name: 'Demonic Wards', text: 'Ignores Rend when making armour rolls.' };
 const RAM = { name: 'Ram Horns', text: 'After finishing a Charge Move, pick 1 enemy engaged with this fighter. It is hit by 2 attacks: Rend -1, Damage 1.' };
-const SNIFF = [{ name: "Sniff 'em Out", text: 'Enemy fighters that are hidden are not hidden while within 9" of this fighter.' }, { name: 'Trackers', text: 'When you search the City, if the search party includes one of these, you can re-roll the exploration roll.' }];
+const SNIFF = [{ name: "Sniff 'em Out", text: 'Enemy fighters that are hidden are not hidden while within 9" of this fighter.' }, { name: 'Trackers', text: 'When exploring the City, if your scouting party includes one of these, you gain 1 exploration re-roll (units dice only).' }];
 const ENGINEER = [{ name: 'Mad Engineering', text: 'Begins the battle with d3 engineering points. Once per activation, if not engaged, spend one to use Engineer.' }, { name: 'Engineer [Bonus Action]', text: 'Pick a friendly fighter within 1", not engaged. Patch-up: a Contraption heals d3 life. Soup-up: one of its ranged weapons gets +1 Rend until end of round, but any misfire is a Backfire.' }];
 const ONE_CUT = { name: 'One-cut, One-kill', text: 'While this fighter has made a Charge Move this activation, its melee attack rolls score a critical hit on a natural 5 or 6.' };
 
@@ -270,10 +275,10 @@ const FACTIONS = [
   id: 'guild', name: 'Guild Mercenaries', short: 'Guild', armoury: 'Guild Armoury',
   blurb: 'Sell-swords, nobles, witch hunters and wizards chasing fortune in the ruins.',
   origins: [
-    { name: 'Swords for Hire', leader: 'guild_captain', stronghold: 'Guild Barracks', perks: [], hold: 'Combat Drills: up to 3 Henchmen earn d6 bonus experience in step 3 of the Aftermath. Eager to Prove: on a 6 in step 6, recruit a Guild Recruit for 0 silver.' },
-    { name: 'Disgraced Noble', leader: 'noble', stronghold: 'Dilapidated Manor', perks: [], hold: 'Vintage Wines: starts with 2d6 bottles. When collecting income you can sell a bottle to re-roll the dice.' },
-    { name: 'Witch Hunters Guild', leader: 'witch_hunter', stronghold: 'Chapter House', perks: [], hold: 'Atonement for Sin: if you lost, each Witch Hunter and Priest that passes a Willpower test earns 5 bonus experience.' },
-    { name: "Wizard's Retinue", leader: 'high_wizard', stronghold: 'Hidden Library', perks: [], hold: 'Sorcerous Study: each battle, pick 1 Wizard. They pick their prepared spell instead of rolling.' },
+    { name: 'Swords for Hire', leader: 'guild_captain', stronghold: 'Guild Barracks', perks: [], hold: 'Combat Drills: in step 3 of the aftermath, up to 3 Henchmen earn d6 bonus experience. Eager to Prove: in step 6, on a 6 recruit a Guild Recruit for 0 silver.' },
+    { name: 'Disgraced Noble', leader: 'noble', stronghold: 'Dilapidated Manor', perks: [], hold: 'Vintage Wines: starts with 2d6 bottles. When collecting income you can sell 1 bottle to re-roll one of the dice. Add to the Collection: each time you ransack a holding, on a 4+ find d3 bottles.' },
+    { name: 'Witch Hunters Guild', leader: 'witch_hunter', stronghold: 'Chapter House', perks: [], hold: 'Atonement for Sin: if you lost, each Witch Hunter and Priest that passes a Willpower test earns 5 bonus experience. Holy Relics: every 10 enemy Undead or Demon Leaders and Champions taken down earns a roll on the Relic table.' },
+    { name: "Wizard's Retinue", leader: 'high_wizard', stronghold: 'Hidden Library', perks: [], hold: 'Sorcerous Study: each battle, pick 1 Wizard. They pick their prepared spell instead of rolling. Master the Arcane: each Wizard earns 5 bonus experience per spell they critically cast.' },
   ],
   items: Object.assign(pick('arcane_staff', 'axe', 'club', 'dagger', 'ensorcelled_weapon', 'flail', 'halberd', 'heavy_axe', 'spear', 'sword', 'ogre_blade', 'ogre_mace', 'cuirass', 'full_plate', 'warded_robes', 'shield', 'grimoire', 'grappling_hook'), {
     warhammer: M('Warhammer', 3, '-1', 2, 'd3+1', 'Bludgeon, Two-handed, Unwieldy', 38),
@@ -288,13 +293,13 @@ const FACTIONS = [
     fire_bombs: R('Fire Bombs', '8"', 1, '-', 'd3+1', '-', 'Blast, One-use, Rare 0-1, Scare', 34),
     flamethrower: R('Flamethrower', 'Flame', 1, '-', 'd3+1', '-', 'Flame, Rare 0-1, Reload, Scare, Two-handed', 80),
     hand_crossbow: R('Hand Crossbow', '12"', 1, '-', 1, 'd6', 'Reload', 16),
-    long_bow: R('Long Bow', '24"', 1, '-1', 1, 'd6', 'Heavy, Two-handed', 26),
+    long_bow: COMMON.long_bow,
     long_rifle: R('Long Rifle', '30"', 1, '-2', 2, 'd6+2', 'Heavy, Misfire, Two-handed', 70),
     ogre_arbalest: R('Ogre Arbalest', '24"', 1, '-2', 3, 'd6+2', 'Rare 0-1, Reload, Two-handed', 90),
     ogre_cannon: R('Ogre Cannon', '18"', 1, '-3', 'd6+1', '-', 'Blast, Misfire, Rare 0-1, Reload, Two-handed', 112),
     ogre_pistol: R('Ogre Pistol', '16"', 1, '-1', 3, 'd6+2', 'Misfire, Reload', 30),
     repeater_pistol: R('Repeater Pistol', '12"', 1, '-1', 2, 'd6+1', 'Misfire', 30),
-    short_bow: R('Short Bow', '16"', 1, '-', 1, 'd6', 'Two-handed', 16),
+    short_bow: COMMON.short_bow,
     volley_rifle: R('Volley Rifle', '16"', 3, '-1', 2, 'd6+1', 'Misfire, Rare 0-1, Reload, Two-handed, Volley', 75),
     ogre_armour: A('Ogre Armour', 5, 30),
     guild_banner: I('Guild Banner', 25, BANNER_TEXT, { held: true, rare: 1 }),
@@ -302,6 +307,7 @@ const FACTIONS = [
     bomb_bolt: I('Bomb-bolt', 25, 'Requires a Crossbow. Once per battle, make a Ranged Attack: 20", 1 attack, Rend -1, Damage d3+1, Blast.', { rare: 1, requires: 'crossbow' }),
     lantern: I('Lantern/Torch', 4, 'Worsen the Armour value of enemy Demon and Undead fighters by 1 while they are engaged with this fighter.', { held: true }),
     wooden_stakes: I('Wooden Stakes', 5, 'Once per battle, Drive the Stake [Bonus Action] against an engaged, bloodied Demon or Undead: on a 2+ it is taken down. Earns 10 bonus experience.', { rare: 1 }),
+    noble_rapier: M("Noble's Rapier", 4, '-1', 1, 'd3', 'Guard, Off-hand', 40, { noBuy: true }),
     vicious_bite: M('Vicious Bite', 3, '-', 1, 'd3', 'Natural Weapon', 0, { natural: true }),
   }),
   lists: {
@@ -315,13 +321,13 @@ const FACTIONS = [
   },
   fighters: [
     { id: 'guild_captain', name: 'Guild Captain', type: 'Leader', cost: 140, kw: 'Leader, Mercenary, Human', s: st(5, 3, 4, 6, 4, 4, 6), lists: ['main', 'champion'], xp: [60, 1], skills: 2, rules: [{ name: 'Veteran of the City', text: 'When recruited, pick 2 skills.' }], quote: 'Stay in formation, and you might live to see the next dawn.' },
-    { id: 'noble', name: 'Noble', type: 'Leader', cost: 120, kw: 'Leader, Mercenary, Human, Aristocrat', s: st(5, 3, 4, 6, 4, 3, 5), lists: ['main', 'champion'], xp: [60, 1], skills: 1, freeSkills: ['Duellist'], rules: [{ name: 'Trained Duellist', text: 'Starts with the Duellist skill. In addition, pick 1 skill.' }] },
+    { id: 'noble', name: 'Noble', type: 'Leader', cost: 150, kw: 'Leader, Mercenary, Human, Aristocrat', s: st(5, 3, 4, 6, 4, 3, 5), lists: ['main', 'champion'], xp: [60, 1], skills: 1, fixed: ['noble_rapier'], rules: [{ name: 'Seasoned Warrior', text: "Equipped with a Noble's Rapier (included in cost, cannot be bought). When recruited, pick 1 skill." }], quote: "I didn't come this far to die a beggar!" },
     { id: 'witch_hunter', name: 'Witch Hunter', type: 'Leader', cost: 140, kw: 'Leader, Mercenary, Human, Witch Hunter', s: st(5, 3, 4, 6, 4, 4, 6), lists: ['main', 'champion', 'witch'], xp: [60, 1], skills: 1, rules: [{ name: 'Seasoned Warrior', text: 'When recruited, pick 1 skill.' }, RECITE] },
     { id: 'high_wizard', name: 'High Wizard of the Guild', type: 'Leader', cost: 165, kw: 'Leader, Mercenary, Human, Wizard', s: st(5, 4, 6, 6, 3, 5, 5), lists: ['wizard'], xp: [60, 1], lore: 'Lore of Sanctioned Magic', sig: 2, rules: [{ name: 'Master of Spellcraft', text: 'Knows the Lore of Sanctioned Magic. Pick 2 signature spells. Prepares 1 random spell each battle.' }] },
     { id: 'guild_wizard', name: 'Guild Wizard', type: 'Champion', max: 1, cost: 120, kw: 'Champion, Mercenary, Human, Wizard', s: st(5, 4, 6, 6, 3, 4, 4), lists: ['wizard'], xp: [40, 1], lore: 'Lore of Sanctioned Magic', sig: 1, rules: [{ name: 'Guild Magic', text: 'Knows the Lore of Sanctioned Magic. Pick 1 signature spell. Prepares 1 random spell each battle.' }] },
     { id: 'guild_cleric', name: 'Guild Cleric', type: 'Champion', max: 1, cost: 120, kw: 'Champion, Mercenary, Human, Priest', s: st(5, 4, 6, 6, 3, 4, 4), lists: ['cleric'], xp: [40, 1], lore: 'Lore of the Saints', sig: 1, rules: [{ name: 'Holy Magic', text: 'Knows the Lore of the Saints. Pick 1 signature spell. Prepares 1 random spell each battle.' }] },
     { id: 'guild_champion', name: 'Guild Champion', type: 'Champion', cost: 90, kw: 'Champion, Mercenary, Human', s: st(5, 3, 4, 6, 3, 3, 5), lists: ['main', 'champion'], xp: [40, 1], skills: 1, rules: [{ name: 'Seasoned Warrior', text: 'When recruited, pick 1 skill.' }] },
-    { id: 'plague_doctor', name: 'Plague Doctor', type: 'Champion', cost: 65, kw: 'Champion, Mercenary, Human', s: st(5, 4, 5, 6, 3, 3, 4), lists: ['main'], xp: [40, 1], rules: [{ name: 'Patch You Up [Action]', text: 'Make a Willpower test. If passed, a friendly fighter within 1" heals 1 life point.' }, { name: 'Sawbones', text: 'Once each aftermath, if not taken down, pick a friendly fighter that was taken down: roll twice on the lasting injury table and pick either.' }] },
+    { id: 'plague_doctor', name: 'Plague Doctor', type: 'Champion', max: 1, cost: 65, kw: 'Champion, Mercenary, Human', s: st(5, 4, 5, 6, 3, 3, 4), lists: ['main'], xp: [40, 1], rules: [{ name: 'Patch You Up [Action]', text: 'Make a Willpower test. If passed, a friendly fighter within 1" heals 1 life point.' }, { name: 'Sawbones', text: 'Once each aftermath, if not taken down, pick a friendly fighter that was taken down: roll twice on the lasting injury table and pick either.' }] },
     { id: 'wh_apprentice', name: "Witch Hunter's Apprentice", type: 'Champion', cost: 80, kw: 'Champion, Human, Mercenary, Witch Hunter', s: st(5, 4, 4, 6, 3, 4, 5), lists: ['main', 'champion', 'witch'], xp: [40, 1], rules: [RECITE] },
     { id: 'guild_mercenary', name: 'Guild Mercenary', type: 'Henchman', cost: 50, kw: 'Henchman, Mercenary, Human', s: st(5, 4, 4, 6, 3, 3, 4), lists: ['main', 'munitions'], xp: [20, 1] },
     { id: 'guild_recruit', name: 'Guild Recruit', type: 'Henchman', cost: 30, kw: 'Henchman, Mercenary, Human', s: st(5, 5, 5, 6, 2, 2, 3), lists: ['main'], xp: [0, 1] },
@@ -334,7 +340,7 @@ const FACTIONS = [
       ['Point Blank Shot', 'While engaged, this fighter can attempt a Ranged Attack action by passing an Initiative test (no Heavy weapons). It must target a fighter they are engaged with.'],
       ['Crackshot', 'When making a ranged attack action, this fighter scores a critical hit on a natural 5 or 6.'],
       ['Feint', 'Once per melee attack action, after an enemy parries one of this fighter\'s hits, roll a dice. If it equals or beats the parry roll, the hit is not parried and becomes a critical hit.'],
-      ["Explorer's Instincts", 'If this fighter leads a search party, you can re-roll one of the dice in the exploration roll.'],
+      ["Explorer's Instincts", 'If this fighter leads a scouting party, you gain 1 exploration re-roll.'],
       ['Right On Time', 'You can re-roll reinforcement rolls made for a battle group that includes this fighter.'],
     ] },
     { id: 'soldiers_cunning', name: "Soldier's Cunning", who: 'Any Mercenary', kw: ['Mercenary'], skills: [
@@ -351,14 +357,14 @@ const FACTIONS = [
   id: 'vermin', name: 'Verminkin', short: 'Verminkin', armoury: 'Verminkin Armoury',
   blurb: 'Rat-kin swarming up from the under-tunnels with poison, plague and mad contraptions.',
   origins: [
-    { name: 'Acolytes of Plague', leader: 'pox_priest', stronghold: 'Desecrated Chapel', perks: ["Your warband can include 0-2 Pox Priest's Apprentices."], limits: { pox_apprentice: 2 }, hold: 'Prayers of Plague: each battle, pick 1 Priest. They pick their prepared spell instead of rolling.' },
-    { name: 'Rooftop Runners', leader: 'nightfang', stronghold: 'Hidden Vantage', perks: [], hold: 'Run the Roofs: up to d3 fighters set up near an entry point can instead set up off the floor, within 12" of the centre and more than 9" from enemies.' },
-    { name: 'Sparkseer Coven', leader: 'sparkseer', stronghold: 'Rickety Workshop', perks: ['Your warband can include 0-2 Rolling Contraptions.'], limits: { contraption: 2 }, hold: 'Mad Tinkerers: roll injuries for Contraptions twice and pick. One Sparkseer starts each battle with 3 engineering points instead of d3.' },
-    { name: 'Merciless Tyrant', leader: 'ironfang', stronghold: 'Fortified Warren', perks: [], hold: 'Fighting Pits: after each battle, 2 Champions or Henchmen that were not taken down can fight in the pits. The winner earns 10 bonus experience.' },
+    { name: 'Acolytes of Plague', leader: 'pox_priest', stronghold: 'Desecrated Chapel', perks: ["Your warband can include 0-2 Pox Priest's Apprentices."], limits: { pox_apprentice: 2 }, hold: 'Prayers of Plague: each battle, pick 1 Priest. They pick their prepared spell instead of rolling. Vector of Plague: each time a fighter gains a level of Black Rot, they earn 5 bonus experience.' },
+    { name: 'Rooftop Runners', leader: 'nightfang', stronghold: 'Hidden Vantage', perks: [], hold: 'Run the Roofs: up to d3 fighters set up near an entry point can instead set up on the roofs: wholly within 12" of the centre, more than 9" from enemies, and 3" or more above the floor.' },
+    { name: 'Sparkseer Coven', leader: 'sparkseer', stronghold: 'Rickety Workshop', perks: ['Your warband can include 0-2 Rolling Contraptions.'], limits: { contraption: 2 }, hold: "Mad Tinkerers: one Sparkseer starts each battle with 3 engineering points instead of d3. Patch 'em Up: roll injuries for Contraptions twice and pick either." },
+    { name: 'Merciless Tyrant', leader: 'ironfang', stronghold: 'Fortified Warren', perks: [], hold: 'Fighting Pits: in step 6 of the aftermath, 2 Champions or Henchmen that were not taken down can fight in the pits. The loser suffers an injury; the winner earns 10 bonus experience.' },
   ],
   items: Object.assign(pick('arcane_staff', 'axe', 'club', 'ensorcelled_weapon', 'flail', 'halberd', 'spear', 'sword', 'full_plate', 'warded_robes', 'shield', 'grimoire', 'grappling_hook', 'ensorcelled_bell'), {
     dagger: M('Dagger/Punch Dagger', 3, '-', 1, 'd3', 'Off-hand', 10),
-    ensorcelled_halberd: M('Ensorcelled Halberd', 3, '-1', 1, 'd3+1', 'Arcane, Brace, Two-handed, Unwieldy', 52),
+    ensorcelled_halberd: M('Ensorcelled Halberd', 3, '-1', 1, 'd3+1', 'Arcane, Brace, Polearm, Two-handed', 48),
     heavy_flail: M('Heavy-Flail', 3, '-1', 2, 'd3+1', 'Two-handed, Unwieldy, Wrap', 38),
     iron_claw: M('Iron Claw', 4, '-', 1, 1, 'Off-hand', 12),
     poison_blade: M('Poison Blade', 3, '-1', 1, 'd3', 'Guard, Off-hand, Poison', 20),
@@ -435,17 +441,18 @@ const FACTIONS = [
   blurb: 'Vampyres, necromancers, werwulf nobles and the barrow dead.',
   origins: [
     { name: 'Aristocrats of Blood', leader: 'bloodcursed_noble', stronghold: 'Opulent Manor', perks: ['Your warband can include 0-3 Bloodcursed Knights.'], limits: { bloodcursed_knight: 3 }, hold: 'Banquet of Blood: up to 3 Vampyres earn d6 bonus experience (2d6 if you won).' },
-    { name: 'Rogue Necromancer', leader: 'necromancer', stronghold: "Embalmer's Hall", perks: [], hold: 'Necromantic Study: each aftermath, your Leader earns 5 experience, or on a 5+ you recruit a Zombie for 0 silver.' },
-    { name: 'The Hunt Descends', leader: 'lycanfell_noble', stronghold: 'Grand Pavilion', perks: ['Any number of Dire Wolves. They do not count towards your Beasts limit.'], unlimited: ['dire_wolf'], notBeast: ['dire_wolf'], hold: 'Bestial Trophies: your Leader earns 10 experience when a Beast they took down is killed. A Howl in the Night: on a 6, recruit a Dire Wolf for 0 silver.' },
-    { name: 'Awakened Lord', leader: 'barrow_lord', stronghold: 'Ancient Barrows', perks: [], hold: "Barrow Offering: on a 6, roll once on the treasure table. Immortal Slumber: if your Leader is 'Laid to Rest' they miss d3 battles instead of leaving." },
+    { name: 'Rogue Necromancer', leader: 'necromancer', stronghold: "Embalmer's Hall", perks: [], hold: 'Necromantic Study: each aftermath, pick one: your Leader earns 5 bonus experience, or on a 5+ recruit a Zombie for 0 silver.' },
+    { name: 'The Hunt Descends', leader: 'lycanfell_noble', stronghold: 'Woodland Estate', perks: ['Any number of Dire Wolves. They do not count towards your Beasts limit.'], unlimited: ['dire_wolf'], notBeast: ['dire_wolf'], hold: 'Trophy Room: your Leader earns 10 bonus experience each time a Beast or Brute they took down is killed. A Howl in the Night: in step 6, on a 6 recruit a Dire Wolf for 0 silver.' },
+    { name: 'Awakened Lord', leader: 'barrow_lord', stronghold: 'Ancient Barrows', perks: [], hold: "Barrow Offering: in step 6, on a 6 roll once on the Curiosities table. Immortal Slumber: if your Leader is 'Laid to Rest' they miss d3 battles instead of leaving; a Champion can assume command." },
   ],
-  items: Object.assign(pick('arcane_staff', 'axe', 'club', 'dagger', 'ensorcelled_weapon', 'flail', 'halberd', 'heavy_axe', 'spear', 'sword', 'ogre_blade', 'ogre_mace', 'cuirass', 'full_plate', 'warded_robes', 'shield', 'grimoire'), {
+  items: Object.assign(pick('arcane_staff', 'axe', 'club', 'dagger', 'ensorcelled_weapon', 'flail', 'halberd', 'heavy_axe', 'spear', 'sword', 'ogre_blade', 'ogre_mace', 'ogre_great_weapon', 'cuirass', 'full_plate', 'warded_robes', 'shield', 'grimoire'), {
     cursed_blade: M('Cursed Blade', 3, '-1', 1, 'd3', 'Arcane, Guard, Off-hand, Poison', 40),
     great_mace: M('Great Mace', 3, '-1', 2, 'd3+1', 'Bludgeon, Two-handed, Unwieldy', 38),
-    ogre_great_weapon: M('Ogre Great Weapon', 3, '-2', 3, 'd3+2', 'Two-handed', 50),
     ancient_banner: I('Ancient Banner', 25, BANNER_TEXT, { held: true, rare: 1 }),
     bestial_companion: I('Bestial Companion', 30, 'Each time this fighter makes a melee attack, they can make 1 additional attack: Rend -1, Damage 2, Critical d3+1, Natural Weapon.', { rare: 1 }),
     spirit_guardian: I('Spirit Guardian', 45, 'Once per battle, Invoke Ethereal Protection [Bonus Action]: until end of round, ignore Rend against this fighter, and each successful armour roll against a melee attack deals 1 damage to the attacker.', { rare: 1 }),
+    long_bow: COMMON.long_bow,
+    short_bow: COMMON.short_bow,
     winged_familiar: I('Winged Familiar', 12, 'Once per battle, Harry [Bonus Action]: a visible enemy within 24" must pass a Willpower test for each Move or Action until end of round, or lose it.', { rare: 1 }),
     zombie_bite: M('Zombie Bite', 3, '-', 1, 'd3', 'Natural Weapon, Poison', 0, { natural: true }),
     stone_talons: M('Stone Talons', 3, '-1', 2, 'd3+1', 'Bludgeon, Natural Weapon', 0, { natural: true }),
@@ -457,6 +464,7 @@ const FACTIONS = [
     main: { name: 'Main List', items: ['axe', 'club', 'dagger', 'flail', 'halberd', 'spear', 'sword', 'cuirass', 'shield'] },
     champion: { name: 'Champion List', items: ['cursed_blade', 'great_mace', 'heavy_axe', 'full_plate', 'ancient_banner', 'bestial_companion', 'spirit_guardian', 'winged_familiar'] },
     zombie_ogre: { name: 'Zombie Ogre List', items: ['ogre_blade', 'ogre_great_weapon', 'ogre_mace', 'shield'] },
+    skeleton: { name: 'Skeleton Warrior List', items: ['long_bow', 'short_bow', 'ancient_banner'] },
     practitioner: { name: 'Practitioner List', items: ['arcane_staff', 'ensorcelled_weapon', 'sword', 'cursed_blade', 'warded_robes', 'grimoire', 'bestial_companion', 'winged_familiar', 'spirit_guardian'] },
   },
   fighters: [
@@ -473,7 +481,8 @@ const FACTIONS = [
     ] }, rules: [{ name: 'Bloodline Mutations', text: 'When recruited, you can pick 1 mutation (each has a silver cost).' }] },
     { id: 'necro_apprentice', name: "Necromancer's Apprentice", type: 'Champion', max: 1, cost: 120, kw: 'Champion, Human, Wizard', s: st(5, 4, 6, 6, 3, 4, 4), lists: ['practitioner'], xp: [40, 1], lore: 'Lore of Necromancy', sig: 1, rules: [{ name: 'Spellcraft', text: 'Knows the Lore of Necromancy. Pick 1 signature spell. Prepares 1 random spell each battle.' }] },
     { id: 'barrow_champion', name: 'Barrow Champion', type: 'Champion', cost: 85, kw: 'Champion, Undead, Skeleton', s: st(4, 3, 6, 6, 3, 4, 5), lists: ['main', 'champion'], xp: [40, 1], skills: 1, rules: [{ name: 'Veteran in Life', text: 'When recruited, pick 1 skill.' }, UNSHAKEABLE] },
-    { id: 'skeleton', name: 'Skeleton Warrior', type: 'Henchman', cost: 40, kw: 'Henchman, Undead, Skeleton, Thrall', s: st(4, 4, 6, 6, 3, 2, 4), lists: ['main'], xp: [0, 0], rules: [UNSHAKEABLE] },
+    { id: 'manservant', name: 'Manservant', type: 'Henchman', max: 3, cost: 45, kw: 'Henchman, Demi-human', s: st(5, 4, 6, 6, 3, 3, 4), lists: ['main'], xp: [20, 1], quote: "Yes, m'lord?" },
+    { id: 'skeleton', name: 'Skeleton Warrior', type: 'Henchman', cost: 40, kw: 'Henchman, Undead, Skeleton, Thrall', s: st(4, 4, 4, 6, 3, 2, 4), lists: ['main', 'skeleton'], xp: [0, 0], rules: [UNSHAKEABLE] },
     { id: 'zombie', name: 'Zombie', type: 'Henchman', cost: 35, kw: 'Henchman, Undead, Zombie, Thrall', s: st(4, 5, 6, 6, 1, 2, 4), lists: [], xp: [0, 0], natural: ['zombie_bite'], noGear: true, rules: [UNSHAKEABLE] },
     { id: 'zombie_ogre', name: 'Zombie Ogre', type: 'Brute', cost: 95, kw: 'Brute, Undead, Zombie, Thrall', s: st(4, 4, 6, 6, 1, 2, 8), lists: ['zombie_ogre'], xp: [0, 0], rules: [UNSHAKEABLE] },
     { id: 'gargoyle', name: 'Gargoyle', type: 'Brute', cost: 150, kw: 'Brute, Undead, Gargoyle, Thrall, Fly', s: st(6, 3, 6, 6, 3, 3, 8), lists: [], xp: [0, 0], natural: ['stone_talons'], noGear: true, rules: [UNSHAKEABLE] },
@@ -485,7 +494,7 @@ const FACTIONS = [
       ['Cloud of Bats', 'Once per battle [Bonus Action]: set up again anywhere wholly within 9" horizontally, not engaged.'],
       ['Mesmeric Gaze', 'Once per battle on a melee attack, each player rolls a dice + Willpower. If this fighter wins, the defender has -1 Attacks on their melee weapons for that action.'],
       ['Unholy Strength', "This fighter's melee weapons gain the Bludgeon weapon trait."],
-      ['Supernatural Healing', 'Cannot suffer permanent injuries. If killed, pass a Willpower test to slumber for d3 battles instead.'],
+      ['Supernatural Healing', 'Injuries are always temporary. If killed, pass a Willpower test to slumber for d3 battles instead; a Champion can assume command.'],
       ['Leech Blood', 'Once per battle [Bonus Action]: each enemy within 9" takes a Willpower test; each that fails suffers 1 damage and this fighter heals 1.'],
       ['Relentless Attacker', 'Subtract 1 from parry rolls made against this fighter\'s attacks.'],
     ] },
@@ -503,10 +512,10 @@ const FACTIONS = [
   id: 'cloister', name: 'The Blighted Cloister', short: 'Cloister', armoury: 'Cloister Armoury',
   blurb: 'Plague-knights, sorcerers and Rot Demons of the Living Saints.',
   origins: [
-    { name: 'Knights-Militant', leader: 'knight_abbot', stronghold: 'Fortified Keep', perks: ['Your warband can recruit any number of Cloister Knights.'], unlimited: ['cloister_knight'], hold: 'Martial Training: up to 3 Knights earn d6 bonus experience. Search the City: if you won, 1 extra re-roll when searching.' },
-    { name: 'Priesthood of Sorcerers', leader: 'high_sorcerer', stronghold: 'Secluded Scriptorium', perks: ['Your warband can recruit 0-2 Cloister Sorcerers.'], limits: { cloister_sorcerer: 2 }, hold: 'Blasphemous Study: scry scrolls toward Wizard advancement, or brew Vials of Poison on a 5+.' },
-    { name: 'The Anointed One', leader: 'knight_abbot', stronghold: 'Unholy Altar', perks: ['Your warband can recruit any number of Rot Demons.'], unlimited: ['rot_demon'], hold: 'Demonic Communion: before the Aftermath roll 3d6 (won) or 2d6 (lost) for damnation, boons or a free demonic ally.' },
-    { name: 'Blessed Rabble', leader: 'high_sorcerer', stronghold: 'Street Pulpit', perks: [], hold: 'Venerate Living Saints: Dreg Cultists earn 5 extra experience per Black Rot level. Canonise the Fallen: when a fighter is killed, each Dreg Cultist earns 10 experience.' },
+    { name: 'Knights-Militant', leader: 'knight_abbot', stronghold: 'Fortified Keep', perks: ['Your warband can recruit any number of Cloister Knights.'], unlimited: ['cloister_knight'], hold: 'Martial Training: in step 3, up to 3 Knights earn d6 bonus experience. Search the City: in step 4, if you won, gain 1 exploration re-roll.' },
+    { name: 'Priesthood of Sorcerers', leader: 'high_sorcerer', stronghold: 'Secluded Scriptorium', perks: ['Your warband can recruit 0-2 Cloister Sorcerers.'], limits: { cloister_sorcerer: 2 }, hold: 'Blasphemous Study: in step 6, either scry scrolls (a running tally that advances a Wizard every 20) or brew a Vial of Poison for each Wizard rolling 5+.' },
+    { name: 'The Anointed One', leader: 'knight_abbot', stronghold: 'Unholy Altar', perks: ['Your warband can recruit any number of Rot Demons.'], unlimited: ['rot_demon'], hold: 'Demonic Communion: in step 6, roll 3d6 if you won or 2d6 if you lost: damnation (2), nothing (3-8), Leader +5 XP (9-12), a free Rot Demon or Rotling (13-15), Leader +20 XP (16+).' },
+    { name: 'Blessed Rabble', leader: 'high_sorcerer', stronghold: 'Street Pulpit', perks: [], hold: 'Venerate Living Saints: Dreg Cultists earn 5 bonus experience per Black Rot level gained. Canonise the Fallen: when a fighter is killed, each Dreg Cultist earns 10 bonus experience.' },
   ],
   items: Object.assign(pick('arcane_staff', 'axe', 'club', 'dagger', 'ensorcelled_weapon', 'flail', 'halberd', 'heavy_axe', 'spear', 'sword', 'cuirass', 'full_plate', 'warded_robes', 'shield', 'grimoire', 'ensorcelled_bell'), {
     demonic_rot_blade: M('Demonic Rot Blade', 3, '-1', 1, 'd3', 'Arcane, Guard, Poison', 45),
@@ -540,7 +549,7 @@ const FACTIONS = [
     { id: 'beastman', name: 'Darkcloven Beastman', type: 'Henchman', cost: 55, kw: 'Henchman, Cloister, Beastman', s: st(5, 4, 5, 6, 3, 3, 4), lists: ['main'], xp: [20, 1], rules: [RAM] },
     { id: 'rot_demon', name: 'Rot Demon', type: 'Henchman', max: 3, cost: 120, kw: 'Henchman, Cloister, Demon', s: st(4, 3, 6, 5, 4, 4, 5), lists: [], xp: [30, 1], fixed: ['demonic_rot_blade'], noGear: true, rules: [WARDS, FEAR] },
     { id: 'rotspawn', name: 'Demonic Rotspawn', type: 'Brute', cost: 130, kw: 'Brute, Cloister, Demon', s: st(5, 3, 6, 5, 4, 4, 8), lists: [], xp: [30, 1], natural: ['rot_maw'], noGear: true, rules: [WARDS, FEAR] },
-    { id: 'rot_colossal', name: 'Demonic Rot-Colossal', type: 'Brute', cost: 200, kw: 'Brute, Cloister, Demon', s: st(5, 4, 6, 5, 4, 4, 10), lists: [], xp: [30, 1], fixed: ['great_rot_blade'], noGear: true, rules: [WARDS, FEAR] },
+    { id: 'rot_colossal', name: 'Demonic Rot-Colossal', type: 'Brute', cost: 200, kw: 'Brute, Cloister, Demon', s: st(5, 4, 6, 5, 4, 4, 10), lists: [], xp: [30, 1], fixed: ['great_rot_blade'], noGear: true, rules: [WARDS, FEAR, { name: 'Demonic Strength', text: 'Ignores the Unwieldy weapon trait on its Great Demonic Rot Blade.' }] },
     { id: 'bloat_fly', name: 'Bloat Fly', type: 'Beast', cost: 50, kw: 'Beast, Cloister, Fly', s: st(10, 5, '-', 6, 4, 1, 2), lists: [], xp: [0, 0], natural: ['proboscis'], noGear: true },
     { id: 'rotling', name: 'Rotling', type: 'Beast', cost: 25, kw: 'Beast, Cloister, Demon', s: st(4, 4, '-', 5, 3, 2, 3), lists: [], xp: [0, 0], natural: ['rot_strike'], noGear: true },
   ],
@@ -565,8 +574,47 @@ const FACTIONS = [
 },
 ];
 
+// Stronghold upgrades (campaign). A stronghold gains 1 upgrade at level 2 (3 battles) and 1 at level 3 (8 battles).
+const UPGRADES = {
+  guild: [
+    { id: 'prayer_room', name: 'Prayer Room', text: 'Communion with the Saints: your warband can include 0-2 Guild Clerics. Each battle, ignore the first miscast by a friendly Priest.', limits: { guild_cleric: 2 } },
+    { id: 'apothecary', name: 'Apothecary', text: "The Apothecary's Potion: in step 6 of the aftermath, receive 1 Healing Tonic." },
+    { id: 'kennels', name: 'Kennels', text: 'Raised Canine: in step 6 of the aftermath, on a 5+ recruit 1 Hunting Dog for 0 silver.' },
+    { id: 'gunsmith', name: "Gunsmith's Workshop", text: 'Maintained Firearms: each battle, ignore the first misfire by a friendly fighter.' },
+    { id: 'chirurgeon', name: "Chirurgeon's Practice", text: "Tend the Wounded: a Plague Doctor can use 'Sawbones' twice each aftermath." },
+    { id: 'armourer', name: 'Armourer', text: 'Heavy Infantry: up to 3 Henchmen in your warband can be equipped with Full-plate.', henchPlate: 3 },
+  ],
+  vermin: [
+    { id: 'poisoner', name: 'Captured Poisoner', text: 'Lethal Concoctions: in step 6 of the aftermath, receive 1 Vial of Poison.' },
+    { id: 'breeding_pens', name: 'Breeding Pens', text: 'Raised Rat: in step 6 of the aftermath, on a 5+ recruit 1 Giant Rat for 0 silver.' },
+    { id: 'warlocks_den', name: "Warlock's Den", text: 'Arcane Rivalry: your warband can include 0-2 Verminkin Warlocks. Once per battle, a Warlock activating within 6" of another can re-roll casting rolls that activation.', limits: { warlock: 2 } },
+    { id: 'splicer', name: 'Splicer', text: 'Stitch and Splice: for each non-Beast fighter killed, remove an injury from a Rat Mutant or give one 5 bonus experience.' },
+    { id: 'ratways', name: 'Rooftop Ratways', text: 'Scour the City: each aftermath, gain 1 exploration re-roll.' },
+    { id: 'smugglers', name: "Smuggler's Den", text: 'Black Market Wares: in step 6 of the aftermath, on a 4+ roll once on the Curiosity table.' },
+  ],
+  coven: [
+    { id: 'orchard', name: 'Blackrose Orchard', text: 'Dark Harvest: in step 6 of the aftermath, on a 5+ receive 1 Blackrose Balm.' },
+    { id: 'ossuary', name: 'Ossuary', text: 'Ossified Remains: Skeleton fighters cost 10 silver less to recruit.', costMod: { kw: 'Skeleton', amount: -10 } },
+    { id: 'crypt', name: 'Exhumed Crypt', text: 'Treasure of the Crypt: when picked, roll once on the Relics table.' },
+    { id: 'household_poisoner', name: 'Household Poisoner', text: "A Night's Work: in step 6 of the aftermath, receive 1 Vial of Poison." },
+    { id: 'gargoyle_tower', name: "Gargoyle's Tower", text: 'Circle the Skies Above: a Gargoyle in reserve can skip its reinforcement roll and arrive next round anywhere more than 9" from enemies.' },
+    { id: 'mausoleum', name: "Necromancer's Mausoleum", text: 'Nexus of Dark Magic: each battle, ignore the first miscast by a friendly Wizard.' },
+  ],
+  cloister: [
+    { id: 'hospice', name: 'Hospice', text: 'Nurture Sickness: in step 6 of the aftermath, remove 1 temporary injury from a fighter; it gains 1 level of Black Rot.' },
+    { id: 'herbalist', name: "Herbalist's Garden", text: 'Medicinal Remedies: in step 6 of the aftermath, receive 1 Healing Tonic.' },
+    { id: 'ritual_chamber', name: 'Ritual Chamber', text: 'Unholy Pacts: in step 3 of the aftermath, 1 friendly Demon earns d6 bonus experience.' },
+    { id: 'flykeeper', name: 'Flykeeper', text: 'Hive-spawn: in step 6 of the aftermath, on a 5+ recruit 1 Bloat Fly for 0 silver.' },
+    { id: 'bell_tower', name: 'Bell Tower', text: 'The Bell Tolls: once per battle when your Leader activates, friendly fighters gain Unshakeable until the end of the round.' },
+    { id: 'alms_box', name: 'Alms Box', text: 'Congregation Collection: when collecting income after a loss, receive an extra 3d6 silver.' },
+  ],
+};
+// Ranks from starting experience (Chapter 5)
+const RANKS = [[0, 1], [7, 2], [13, 3], [20, 4], [30, 5], [40, 6], [50, 7], [60, 8], [80, 9], [100, 10], [120, 11], [140, 12], [160, 13], [180, 14], [200, 15], [240, 16], [280, 17], [320, 18], [360, 19], [400, 20]];
+const rankOf = xp => RANKS.filter(([min]) => xp >= min).pop()[1];
+
 const SPELLS = {"Lore of Sanctioned Magic": [{"n": 1, "name": "Arcane Missile", "type": "Attack Spell", "cv": 7, "text": "Pick the closest visible enemy fighter within 15\" of the caster to be the target. That fighter is hit with the following attack: Rend/Damage: -1 d3 Critical Cast [10+]: Add 1 to the Damage value."}, {"n": 2, "name": "Flaming Weapon", "type": "Enchant Spell", "cv": 7, "text": "Pick a visible friendly fighter within 6\" of the caster to be the target, then pick 1 of the target’s melee weapons to ignited until the end of the round. While a weapon is ignited: • It gains the Arcane Weapon Trait. • Improve its Rend characteristic by 1. Critical Cast [10+]: Increase the range of the spell from 6\" to 12\"."}, {"n": 3, "name": "Eldritch Barrier", "type": "Cantrip Spell", "cv": 7, "text": "Pick 2 visible points on a platform or the battlefield floor, each within 9\" of the caster, 6\" of each other and the same elevation. A barrier is drawn between these two points. The barrier remains in play until the end of the round or the caster is taken down. While the barrier is in play: • Subtract 1 from attack rolls for ranged attacks made that cross the barrier. • Fighters that are activated in the barrier or move across the barrier suffer d3 damage. Critical Cast [10+]: The 2 points can be set up within 9\" of each other instead of 6\"."}, {"n": 4, "name": "Silence", "type": "Hex Spell", "cv": 7, "text": "Pick a visible enemy Wizard or Priest within 12\" to be the target. Until the end of the round, that fighter cannot make arcane actions. Critical Cast [10+]: Increase the range from 12\" to 18\"."}, {"n": 5, "name": "Torrent of Fire", "type": "Attack Spell", "cv": 8, "text": "Place the flame template. Each fighter in its area is targeted and hit with the following attack: Rend/Damage: -1 d3+1 Critical Cast [12+]: The Rend value is -2."}, {"n": 6, "name": "Umbral Vortex", "type": "Attack Spell", "cv": 9, "text": "Place the blast template centred on a visible point within 15\" of the caster, it then scatters d6”. Each fighter in its area is hit with the following attack: Rend/Damage: -1 d3+1 After the attacks have been resolved, the blast template remains where it is. It represents a vortex that remains in play until the end of the round. Line of sight cannot be drawn across the vortex for fighters on the same elevation. In addition, fighters who start their activation within the vortex, or move across it, are hit with the same attack. At the end of the round, remove the vortex. Critical Cast [13+]: It does not scatter."}], "Lore of the Saints": [{"n": 1, "name": "Healing Essence", "type": "Healing Spell", "cv": 6, "text": "Pick a visible friendly fighter within 15\" of the caster to be the target. Heal d3 life points to the target. Critical Cast [10+]: Heal 3 life points instead of d3."}, {"n": 2, "name": "Bless Thy Blade", "type": "Enchant Spell", "cv": 7, "text": "Pick a visible friendly fighter within 9\" of the caster to have blessed blades until the end of the round. While a fighter has blessed blades, add 1 to hit rolls for melee attacks made by them. Critical Cast [10+]: If critically cast, up to 2 friendly fighters can be picked instead of 1."}, {"n": 3, "name": "Godspeed", "type": "Aura Spell", "cv": 6, "text": "Until the end of the round, the caster has a 9\" aura of godspeed. Friendly fighters who begin a move while they are within the aura add 1\" to the maximum distance they can move. Critical Cast [10+]: Increase the range of the aura from 9\" to 12\"."}, {"n": 4, "name": "Will of The Saints", "type": "Enchant Spell", "cv": 7, "text": "Pick a visible friendly fighter within 15\" of the caster. That fighter has the Will of the Saints until the end of the round. While a fighter has the Will of the Saints, improve their Armour value by 1, to a maximum of 2+. (For example, 6+ becomes 5+). Critical Cast [10+]: If critically cast, up to 2 friendly fighters can be picked instead of 1."}, {"n": 5, "name": "Holy Strength", "type": "Aura Spell", "cv": 7, "text": "Until the end of the round, the caster has a 6\" aura of holy strength. Add 1 to the Critical Damage values of melee weapons used by friendly fighters while they are within the aura. Critical Cast [10+]: Increase the range of the aura from 6\" to 9\"."}, {"n": 6, "name": "Consecrated Ground", "type": "Aura Spell", "cv": 8, "text": "Pick a visible point on the battlefield floor within 12\" of the caster. While a friendly fighter is within 3\" of that point, their armour value is improved by 1. The spell remains in play. While this spell is in play, the caster must pass a Willpower test at the start of their activation, else the spell ends. If they attempt to cast this spell again while it is still in play, the first instance of it ends (even if they fail to cast it again). If the caster is taken down, the spell ends. Critical Cast [12+]: While the spell is in play, friendly fighters are affected while they are within 6\" of that point, instead of 3\"."}], "Lore of the Under-Tunnels": [{"n": 1, "name": "Shadow Leap", "type": "Cantrip Spell", "cv": 7, "text": "Pick a visible friendly fighter within 3\" of the caster, remove them from the battlefield and set them up again, anywhere on the battlefield within 9\" of the caster and not engaged in melee, (if you pick the caster themselves, mark their location before removing them from the battlefield). Critical Cast [10+]: Increase the range the fighter can be set up from 9\" to 12\"."}, {"n": 2, "name": "Doom", "type": "Hex Spell", "cv": 6, "text": "Pick a visible enemy fighter within 12\" of the caster to be the target. That enemy fighter is doomed . While an enemy fighter is doomed you can make them re-roll one of the following: an attack roll, a parry roll, an armour roll. Once you do so, the fighter is no longer doomed. Critical Cast [10+]: Increase the range to 18\"."}, {"n": 3, "name": "Chain Lightning", "type": "Attack Spell", "cv": 8, "text": "The closest visible enemy fighter within 12\" is targeted and hit with the following attack: Rend/Damage: -1 d3 Then, pick another enemy fighter that is within 3\" of the previous target and visible to it to be the new target. It is hit with the same attack. Critical Cast [12+]: After the attack on the second target is resolved, pick another enemy fighter within 3\" of the first two and visible to them, to be the third target. They are hit with the same attack."}, {"n": 4, "name": "Tunnel from Below", "type": "Cantrip Spell", "cv": 8, "text": "Place the blast template centred on the battlefield floor within 12\" of the caster. Then scatter the blast template d6\". You can pick d3 friendly fighters in Reserve to be set up on the battlefield floor, in the template and not engaged in melee. Critical Cast [12+]: Increase the range from 12\" to 15\""}, {"n": 5, "name": "Gathering Shadows", "type": "Aura Spell", "cv": 7, "text": "Until the end of the round, the caster has a 6\" aura of shadows. Friendly fighters are in cover while they are within 6\" of the caster. Critical Cast [10+]: Increase the range of the aura from 6\" to 9\"."}, {"n": 6, "name": "Bouncing Blast", "type": "Attack Spell", "cv": 9, "text": "Place the blast template centred on a visible point within 15\" of the caster, it then scatters d6”. Each fighter in its area is hit with the following attack: Rend/Damage: -1 d3 Then, the blast scatters d6\" again, and every fighter in its area is targeted and hit with the above attack, (it is possible for the same fighter to be hit with an attack both times). Critical Cast [12+]: When the blast template is first placed, it does not scatter."}], "Lore of Poxes": [{"n": 1, "name": "Spray of Vomit", "type": "Attack Spell", "cv": 7, "text": "Place the flame template from the caster. Each fighter in its area is targeted and hit with the following attack: Rend/Damage: -1 1 Critical Cast [10+]: The Damage value is d3 instead of 1."}, {"n": 2, "name": "Fetid Blades", "type": "Enchant Spell", "cv": 7, "text": "Pick a friendly fighter within 6\" of the caster to be the target, then pick 1 of the target’s melee weapons to be fetid until the end of the round. While a weapon is fetid it gains the Arcane and Poison weapon traits. Critical Cast [10+]: Increase the range of the spell from 6\" to 12\"."}, {"n": 3, "name": "Rabid Fervour", "type": "Aura Spell", "cv": 7, "text": "Until the end of the round, the caster has a 6\" aura of rabid fervour. Add 1 to attack rolls for melee attacks made by friendly fighters while they are within the aura. Critical Cast [10+]: Increase the range of the aura from 6\" to 9\"."}, {"n": 4, "name": "Rotten Armour", "type": "Hex Spell", "cv": 7, "text": "Pick a visible enemy fighter within 18\" of the caster. That enemy fighter has rotten armour for the rest of the round. While a fighter has rotten armour worsen their Armour value by 1 (to a minimum of '-'). Critical Cast [12+]: The target fighter has rotten armour for the rest of the battle."}, {"n": 5, "name": "Dark Vitality", "type": "Healing Spell", "cv": 6, "text": "Each friendly fighter within 3\" of the caster heals 1 life. Critical Cast [10+]: Increase the range from 3\" to 6\"."}, {"n": 6, "name": "Plague Bomb", "type": "Attack Spell", "cv": 8, "text": "Place the blast template centred on a visible point within 12\" of the caster, it then scatters d6”. Each fighter in its area is hit with the following attack: Rend/Damage: - d3 Each fighter hit by the spell becomes poisoned, (see Poison weapon trait). Critical Cast [12+]: It does not scatter."}], "Lore of Necromancy": [{"n": 1, "name": "Witchfire", "type": "Attack Spell", "cv": 8, "text": "Place d3 witchfire tokens by the caster, to a maximum of 3. Once per activation, the caster can spend a witchfire token to make the following bonus action: Witchfire Attack [Bonus Action]: The closest visible enemy fighter within 12\" is targeted and hit with the following attack: Rend/Damage: - d3 Critical Cast [12+]: Place 3 witchfire token by the caster (to a maximum of 3) instead of d3."}, {"n": 2, "name": "Ethereal Armour", "type": "Enchant Spell", "cv": 8, "text": "Pick a visible friendly fighter within 6\" of the caster to be the target, that fighter becomes ethereal until the end of the round. While a fighter is ethereal, Improve its Armour value by 1 (to a maximum of 2+): Critical Cast [12+]: Increase the range of the spell from 6\" to 12\"."}, {"n": 3, "name": "Raise Zombie", "type": "Summon Spell", "cv": 9, "text": "A summoned Zombie fighter (pg xx), is added to the caster's warband until it is taken down. Set up the fighter within 3\" of the caster and not engaged in melee. A warband cannot have more than 3 summoned fighters at any time. If the caster's warband already has 3 summoned fighters, they cannot cast this spell. Critical Cast [12+]: The fighter can be set up within 9\" of the caster and not engaged in melee."}, {"n": 4, "name": "Twilight Translocation", "type": "Cantrip Spell", "cv": 7, "text": "Pick another visible friendly fighter within 6\" of the caster to be the target, remove them from the battlefield and set them up again, anywhere on the battlefield within 15\" of the caster and not engaged in melee. Critical Cast [12+]: When setting up the fighter, increase the range to 18\"."}, {"n": 5, "name": "Death Blast", "type": "Attack Spell", "cv": 9, "text": "Place the blast template centred on a point within 12\" of the caster, it then scatters d6\". Each fighter in the template is targeted and hit with the following attack: Rend/Damage: -1 d3+1 Critical Cast [12+]: It does not scatter."}, {"n": 6, "name": "Balefire", "type": "Attack Spell", "cv": 9, "text": "Place the flame template from the caster. Each fighter in the template is targeted and hit with the following attack: Rend/Damage: -2 d3 Critical Cast [13+]: Add 1 to the Damage value."}], "Lore of Blood": [{"n": 1, "name": "Draw Blood", "type": "Attack Spell", "cv": 7, "text": "Pick the closest visible enemy fighter within 9\" of the casting fighter to be the target. That fighter suffers 1 damage and the caster heals 1 point of life. Critical Cast [10+]: The target suffers 2 damage and the caster heals 2 points of life instead."}, {"n": 2, "name": "Cursed Blades", "type": "Enchant Spell", "cv": 7, "text": "Pick a friendly fighter within 6\" of the caster to be the target, then pick 1 of the target’s melee weapons to be cursed until the end of the round. While a weapon is cursed it gains the Arcane and Poison weapon traits. Critical Cast [10+]: Increase the range of the spell from 6\" to 12\"."}, {"n": 3, "name": "Raise Skeleton", "type": "Summon Spell", "cv": 10, "text": "A summoned Skeleton fighter (pg xx), is added to the caster's warband until it is taken down. Set up the fighter within 3\" of the caster and not engaged in melee. The Skeleton is equipped with a Cuirass and a Shield as well as 1 of the following melee weapons; Club, Spear or Sword. A warband cannot have more than 3 summoned fighters at any time. If the castor's warband already has 3 summoned fighters, they cannot cast this spell. Critical Cast [14+]: The fighter can be set up within 9\" of the caster and not engaged in melee."}, {"n": 4, "name": "Recall", "type": "Cantrip Spell", "cv": 7, "text": "Pick a friendly Thrall on the battlefield to be the target. Remove them from the battlefield and set them up again within 3\" of the caster and not engaged in melee. Critical Cast [10+]: You can pick up to 2 friendly Thralls instead of 1."}, {"n": 5, "name": "Bat Scream", "type": "Hex Spell", "cv": 8, "text": "Place the flame template from the caster. Each fighter in its area is targeted. Each targeted fighter suffers 1 damage. In addition they must pass a Willpower test else they become disorientated until the end of the round. While a fighter is disorientated , subtract 1 from their Attack and Parry rolls. Critical Cast [10+]: Subtract 1 from the Willpower tests targeted fighters make."}, {"n": 6, "name": "Sanguine Spear", "type": "Attack Spell", "cv": 10, "text": "Draw a line from the caster, 12\" long and 1\" wide. Each visible enemy fighter the line passes through is hit by the following attack: Rend/Damage: -2 d3 For each point of damage a target suffers, heal the caster 1 life point. Critical Cast [14+]: Increase the range to 15”."}], "Lore of Blessed Maggots": [{"n": 1, "name": "Swollen Form", "type": "Enchant Spell", "cv": 7, "text": "Pick a visible friendly fighter within 9\" of the caster to be the target. That fighter is swollen until the end of the round. While a fighter is swollen, they can ignore the first 3 points of damage they suffer. Critical Cast [10+]: Increase the range to 12\""}, {"n": 2, "name": "Black Mire", "type": "Hex Spell", "cv": 8, "text": "Pick a visible point on the battlefield floor within 6\" of the caster. Until the end of the round, the battlefield floor within 6\" of that point is a mire. Subtract 2 from the maximum distance a non-Cloister fighter can move each time they move across the mire. Critical Cast [12+]: The battlefield floor within 9\" of that point is a mire, instead of 6\"."}, {"n": 3, "name": "Erupting Sores", "type": "Attack Spell", "cv": 8, "text": "The closest visible enemy fighter within 9\" is targeted and suffers d3 damage. If they are not taken down, they must pass a Willpower test, else scatter d6\". Critical Cast [12+]: Increase the range to 12\""}, {"n": 4, "name": "Rain of Filth", "type": "Healing Spell", "cv": 7, "text": "Place the blast template centred on a point within 12\" of the caster, it then scatters d6\". Each fighter in the template is targeted and heals d3 life. Critical Cast [12+]: It does not scatter."}, {"n": 5, "name": "Putrid Blessing", "type": "Enchant Spell", "cv": 8, "text": "Pick a friendly fighter within 6\" of the casting fighter to be the target,. That fighter has a putrid blessing until the end of the round. While a fighter has a putrid blessing, their Melee Weapons gain the Arcane and Poison weapon traits. Critical Cast [10+]: Increase the range of the spell from 6\" to 12\"."}, {"n": 6, "name": "Black Bile", "type": "Attack Spell", "cv": 9, "text": "Place the flame template from the caster. Each fighter in the template is targeted and hit with the following attack: Rend/Damage: -1 d3 Critical Cast [14+]: Each fighter hit by the attack must pass a Willpower test else they become poisoned, (see the Poison weapon trait)."}], "Demonic Lore of Rot": [{"n": 1, "name": "Summon Rotling", "type": "Summon Spell", "cv": 9, "text": "A summoned Rotling fighter (pg xx), is added to the caster's warband until it is taken down. Set up the fighter within 3\" of the caster and not engaged in melee. A warband cannot have more than 3 summoned fighters at any time. If the caster's warband already has 3 summoned fighters, they cannot cast this spell. Critical Cast [14+]: The fighter can be set up within 9\" of the caster and not engaged in melee."}, {"n": 2, "name": "Demonic Strength", "type": "Enchant Spell", "cv": 8, "text": "Pick a friendly Demon or Beastman fighter within 6\" of the caster to be the target. That fighter has demonic strength until the end of the round. While a fighter has demonic strength, add 1 to the Damage and Critical Damage values of their Melee Weapons. Critical Cast [12+]: You can pick 2 fighters to be targets instead of 1."}, {"n": 3, "name": "Rotten Insides", "type": "Hex Spell", "cv": 6, "text": "The closest visible enemy fighter within 9\" is targeted and suffers 1 damage. If they are not taken down, they have rotten insides. While a fighter has rotten insides their Move value is 2\". At the end of a fighter with rotten insides's activation they take a Willpower test. If they pass, they no longer have rotten insides. Critical Cast [12+]: Increase the range to 12\""}, {"n": 4, "name": "Plague Wind", "type": "Hex Spell", "cv": 6, "text": "Place the blast template centred on a point within 15\" of the caster. Each enemy fighter in the template is targeted and must pass a Willpower test else they become poisoned, (see the Poison weapon trait). Critical Cast [10+]: Subtract 1 from any Willpower tests made for this spell."}, {"n": 5, "name": "Protective Shroud", "type": "Enchant Spell", "cv": 8, "text": "Pick a friendly Demon or Beastman fighter within 6\" of the caster to be the target. That fighter has a protective shroud until the end of the round. While a fighter has protective shroud, improve their Armour value by 1. Critical Cast [12+]: Increase the range to 12\""}, {"n": 6, "name": "Plague Pit", "type": "Cantrip Spell", "cv": 9, "text": "Place the blast template centred on a visible point on the battlefield floor within 9\" of the caster. A pit opens here. In an order chosen by the commanding player of the caster, each fighter in the template is removed from the battlefield and set up again at the edge of the pit by its commanding player, not engaged in melee. If there is no space, they are set up as close to the edge of the pit as possible, not engaged in melee. After being set up, the fighter must pass an Initiative test else suffer d3 damage and become poisoned (see the Poison weapon trait). The pit remains in play until the end of the round. Fighters cannot move across the pit while they are on the battlefield floor. Any treasure tokens on the pit are destroyed. Critical Cast [14+]: Increase the range from 9\" to 12\"."}]};
-// ---------- Battle cheat sheet (summarised from Black Death City Playtest 1.03) ----------
+// ---------- Battle cheat sheet (summarised from Black Death City Playtest 1.10) ----------
 const CHEAT = [
   { id: 'setup', title: 'Setting up a battle', list: [
     ['1. Underdog', 'The warband with the lower warband rating is the underdog. Roll off if tied.'],
@@ -676,11 +724,76 @@ const CHEAT = [
     ['Fleeing', 'Roll for each carrier: on a 1 it is dropped, on 2+ it is kept.'],
     ['End of battle', 'Keep treasure your fighters hold. The winner takes all treasure left on the battlefield.'],
   ] },
+  // ---- Campaign (Chapter 5) ----
+  { id: 'c_underdog', title: 'Underdog bonuses', note: 'After the underdog is found, if its warband rating is 100 or more below its opponent\'s, roll once on this table per full 100 points of difference (maximum 5 rolls). Discard duplicates.', table: { head: ['d6', 'Bonus'], rows: [
+    ['1', 'On Your Own: no bonus.'],
+    ['2', 'Whispers and Spies: re-roll reinforcement rolls this battle.'],
+    ['3', 'A Poison Package: d3 Vials of Poison to equip or stash.'],
+    ['4', 'A Tincture of Choice: 1 tonic (Speed, Strength, Steady Aim, Fortitude, Mind or Levitation) to equip or stash.'],
+    ['5', 'Silver Bounty: in step 5, d6 silver per enemy taken down, plus 25 silver per enemy killed in the aftermath.'],
+    ['6', 'The Hidden Holding: secretly roll a d66 holding. Win and Seize the Prize to take it as well.'],
+  ] } },
+  { id: 'c_aftermath', title: 'Aftermath sequence', list: [
+    ['1. Holdings and stronghold', 'Winner rolls a prize holding (d66), then picks: Seize the Prize, Seize an Enemy Holding (loser may then take the prize), or Stand Ground. After a warband\'s 3rd and 8th battles, its stronghold levels up and gains 1 upgrade.'],
+    ['2. Injuries', 'Roll for each fighter taken down (see Injuries).'],
+    ['3. Experience', 'd6 for surviving, +d6 if your warband lost, +5 per enemy taken down in the fighter\'s activation, plus bonus experience. Roll an advance for each new rank.'],
+    ['4. Explore the City', 'Optional scouting party (see Exploring).'],
+    ['5. Income', 'Stronghold and holdings pay out. Ransack holdings (then they become a Ruined Hovel). Each claimed treasure is worth d3x5 silver unless the scenario says otherwise.'],
+    ['6. Downtime', 'Recuperate, recruit, retire, buy, sell and swap wargear, leech, other activities (see Downtime).'],
+    ['7. Update roster', 'Warband rating = cost of all fighters and their wargear (relics included, curiosities and stash not) + all experience.'],
+  ] },
+  { id: 'c_injury', title: 'Injuries (d66)', note: 'An [Injury] is permanent on a 1, temporary on 2+. A fighter can only have each injury once; a repeat counts as Full Recovery.', table: { head: ['d66', 'Result'], rows: [
+    ['11-15', 'Killed: removed with all its wargear.'],
+    ['16', 'Gut Wound [Injury]: halve Life (round up).'],
+    ['21', 'Blinded in One Eye [Injury]: Bow value worsens by 1.'],
+    ['22', 'Fractured Arm [Injury]: Blade value worsens by 1.'],
+    ['23', 'Broken Leg [Injury]: halve Move (round up).'],
+    ['24', 'Head Injury [Injury]: halve Initiative (round up).'],
+    ['25', 'Frayed Nerves [Injury]: halve Willpower (round up).'],
+    ['26', 'Chronic Black Rot: gains 2 levels of Black Rot.'],
+    ['31-46', 'Black Rot: gains 1 level of Black Rot.'],
+    ['51-65', 'Full Recovery.'],
+    ['66', 'Heroic Escape: full recovery and 10 bonus experience.'],
+  ] } },
+  { id: 'c_injury_other', title: 'Other injury tables (d6)', table: { head: ['Who', 'Result'], rows: [
+    ['Beasts', '1-2 Killed. 3-6 Full Recovery.'],
+    ['Skeletons and Thralls', '1 Laid to Rest (killed). 2-6 Full Recovery.'],
+    ['Demons', '1 Banished (killed). 2-3 Fractured Essence: misses the next battle. 4-6 Unharmed.'],
+  ] }, list: [
+    ['Black Rot', 'No effect until the 4th level, when the fighter dies. Beasts, Demons and Undead are immune.'],
+    ['Death of a Leader', 'A Champion assumes command: becomes the Leader and earns d6 bonus experience each aftermath (Burden of Command) until a new Leader is recruited. With no Champion, you must recruit a Leader or Champion before anyone else.'],
+  ] },
+  { id: 'c_advance', title: 'Ranks and advances', list: [
+    ['Ranks', '1: 0-6 XP, 2: 7-12, 3: 13-19, 4: 20-29, 5: 30-39, 6: 40-49, 7: 50-59, 8: 60-79, 9: 80-99, 10: 100-119, then every 20 XP to 15 (200), every 40 XP to 20 (400+).'],
+    ['Thralls and Beasts', 'Never earn experience or gain ranks.'],
+  ], table: { head: ['d6', 'Advancement roll'], rows: [
+    ['1', 'Wits: +1 Initiative or +1 Willpower.'],
+    ['2', 'Speed: +1 Move.'],
+    ['3-4', 'Constitution: +1 Life.'],
+    ['5', 'Combat Prowess: improve Blade or Bow by 1 (best 2+).'],
+    ['6', 'Fated: pick a skill, or a signature spell (Wizards and Priests), or any other result on this table.'],
+  ] } },
+  { id: 'c_explore', title: 'Exploring the City', list: [
+    ['Scouting party', 'From fighters not taken down: 1 Leader or Champion to lead, 1-3 Henchmen, and up to 1 Beast.'],
+    ['Exploration roll', 'Roll a d66 on the Exploration table. Re-rolls from skills, strongholds and Beasts stack and can be used in any order; some only re-roll the tens or the units dice. Accept the final result.'],
+  ] },
+  { id: 'c_downtime', title: 'Downtime', list: [
+    ['Recuperate', 'Roll for each temporary injury not gained this aftermath: 5-6 removes it.'],
+    ['Recruit', 'Normal recruiting rules. With no Leader or Champion, the next recruit must be one. With fewer than 5 Henchmen, recruit only Henchmen until you have 5.'],
+    ['Retire', 'Remove any fighter. Its wargear goes to the stash, except wargear it was recruited with (such as a Knight\'s Full-plate).'],
+    ['Sell', 'Wargear sells for half its cost. Curiosities and Relics sell for full price.'],
+    ['Leech', 'Use a Jar of Canal Leeches on a fighter: on a 4+ remove 1 level of Black Rot. Each fighter once per downtime.'],
+  ] },
+  { id: 'c_stronghold', title: 'Stronghold levels', table: { head: ['Battles fought', 'Level', 'Income', 'Upgrades'], rows: [
+    ['0-2', '1st', '3d6x5 silver', 'None'],
+    ['3-7', '2nd', '4d6x5 silver', '1st upgrade'],
+    ['8+', '3rd', '5d6x5 silver', '2nd upgrade'],
+  ] } },
   { id: 'traits', title: 'Weapon traits', table: { head: ['Trait', 'Reminder'], rows: [
     ['Arcane', 'Critical hits on 5+.'], ['Blast', 'Blast template. A miss scatters d6x2". No criticals.'], ['Bludgeon', 'Critical hits still deal 1 damage when saved.'],
     ['Brace', 'Has initiative when defending against a charger.'], ['Flame', 'Flame template. Hits automatically.'], ['Guard', 'Once per melee attack, a miss can be used to parry.'],
     ['Heavy', 'Cannot attack after moving, or move after attacking.'], ['Misfire', 'Roll on the misfire table for any natural 1.'], ['Natural Weapon', 'Cannot parry.'],
-    ['Off-hand', 'Can be the off-hand weapon: 1 attack.'], ['One-use', 'Once per battle.'], ['Poison', 'Critical damage poisons: 1 damage each activation until healed or on 1 life. Not Demons or Undead.'],
+    ['Off-hand', 'Can be the off-hand weapon: 1 attack.'], ['One-use', 'Once per battle.'], ['Polearm', 'Can be carried with a held item (such as a shield), but then gains Unwieldy.'], ['Poison', 'Critical damage poisons: 1 damage each activation until healed or on 1 life. Not Demons or Undead.'],
     ['Rare 0-x', 'Only x fighters in the warband can carry one.'], ['Reload', 'After firing, give up a Move or Action to reload. Not while engaged.'],
     ['Scare', 'Unengaged fighters hit must pass Willpower or scatter d6".'], ['Two-handed', '1 per fighter. No off-hand attacks.'], ['Unwieldy', '-1 to attack rolls.'],
     ['Volley', 'Split attacks between the target and others within 3" of it.'], ['Wrap', 'Cannot parry or be parried.'],
@@ -695,12 +808,15 @@ function viewCheat() {
   const by = id => sec(CHEAT.find(c => c.id === id));
   const cols = ids => `<div class="cs-cols">${ids.map(by).join('')}</div>`;
   return `<div class="stack">
-    <section class="panel row" style="justify-content:space-between"><div><h2 style="font-family:var(--f-display);font-weight:400;font-size:2.1rem">Battle cheat sheet</h2><div class="hint">Set-up, deployment, turns, actions and tables from the Playtest 1.03 rules.</div></div>
+    <section class="panel row" style="justify-content:space-between"><div><h2 style="font-family:var(--f-display);font-weight:400;font-size:2.1rem">Battle cheat sheet</h2><div class="hint">Set-up, deployment, turns, actions, tables and campaign rules from the Playtest 1.10 rules.</div></div>
       <button class="btn primary" data-act="pdf-cheat">Download cheat sheet PDF</button></section>
     ${noDlNote()}
     ${cols(['setup', 'round', 'activation', 'reserve'])}
     ${by('scenarios')}${by('moves')}
     ${cols(['melee', 'ranged', 'resolve', 'hide', 'arcane', 'misfire', 'terrain', 'treasure', 'traits'])}
+    <section class="panel" id="campaign"><h2 style="font-family:var(--f-display);font-weight:400;font-size:2rem">Campaign: between battles</h2><div class="hint">Underdog bonuses, the aftermath sequence, injuries, advances, exploring and downtime.</div></section>
+    ${by('c_aftermath')}
+    ${cols(['c_underdog', 'c_injury', 'c_injury_other', 'c_advance', 'c_explore', 'c_downtime', 'c_stronghold'])}
   </div>`;
 }
 
@@ -750,9 +866,10 @@ function pdfKit(title) {
   return k;
 }
 function cheatToPdf(k) {
-  k.h1('Black Death City: Battle Cheat Sheet', 'Set-up, deployment, turn sequence, actions and tables. Summarised from the Black Death City Playtest 1.03 rules.');
-  const ORDER = ['setup', 'scenarios', 'reserve', 'round', 'activation', 'moves', 'terrain', 'melee', 'ranged', 'resolve', 'hide', 'arcane', 'misfire', 'treasure', 'traits'];
+  k.h1('Black Death City: Battle Cheat Sheet', 'Set-up, deployment, turn sequence, actions and tables. Summarised from the Black Death City Playtest 1.10 rules.');
+  const ORDER = ['setup', 'scenarios', 'reserve', 'round', 'activation', 'moves', 'terrain', 'melee', 'ranged', 'resolve', 'hide', 'arcane', 'misfire', 'treasure', 'traits', 'c_underdog', 'c_aftermath', 'c_injury', 'c_injury_other', 'c_advance', 'c_explore', 'c_downtime', 'c_stronghold'];
   ORDER.map(id => CHEAT.find(c => c.id === id)).forEach(c => {
+    if (c.id === 'c_underdog') { k.page(); k.h1('Campaign: Between Battles', 'Underdog bonuses, the aftermath sequence, injuries, advances, exploring and downtime.'); }
     k.h2(c.title);
     if (c.note) k.small(c.note);
     if (c.list) c.list.forEach(([a, b]) => k.para(a + ':', b));
@@ -765,6 +882,7 @@ function rosterToPdf(k, wb, f) {
   const t = totals(wb); const o = f.origins[wb.origin]; const chk = check(wb);
   k.h1(wb.name || 'Unnamed warband', `${f.name} - ${o ? o.name : ''}. Warband rating ${t.rating}. Spent ${t.cost} silver, stash ${Math.max(0, t.left)} silver. ${wb.fighters.length} fighters.`);
   if (o) { k.para(`Stronghold: ${o.stronghold}.`, `Income 3d6x5 silver. ${o.hold}`); if (o.perks.length) k.para('Origin:', o.perks.join(' ')); }
+  (wb.upgrades || []).forEach(id => { const u = (UPGRADES[f.id] || []).find(u => u.id === id); if (u) k.para(`Stronghold upgrade - ${u.name}:`, u.text); });
   if (chk.list.length) k.small(`Not yet legal: ${chk.list.map(i => i.msg).join(' ')}`);
   const order = TYPES.map(ty => ty.key);
   const xs = [...wb.fighters].sort((a, b) => order.indexOf(fdef(f, a.fid).type) - order.indexOf(fdef(f, b.fid).type));
@@ -775,17 +893,17 @@ function rosterToPdf(k, wb, f) {
   xs.forEach(x => {
     const d = fdef(f, x.fid); const { s } = effStats(f, x); const its = gearItems(f, x);
     k.ensure(120); k.gap(4);
-    k.h2(displayName(f, x), `${fighterCost(f, x)}s  ·  ${fighterXp(x)} XP`.replace('·', '-'));
+    k.h2(displayName(f, x), `${fighterCost(f, x, wb)}s - ${fighterXp(x)} XP - Rank ${rankOf(fighterXp(x))}`);
     const mut = x.opt ? d.options.list.find(o => o.id === x.opt) : null;
     k.small(`${d.name} - ${d.kw}${mut && mut.kw ? ', ' + mut.kw : ''}`);
     k.table(['Move', 'Blade', 'Bow', 'Armour', 'Initiative', 'Willpower', 'Life'], [[s.mv + '"', s.bl + '+', s.bw === '-' ? '-' : s.bw + '+', s.ar + '+', String(s.ini), String(s.wp), String(s.li)]], { styles: { fontSize: 10, halign: 'center', cellPadding: 3, textColor: [20, 24, 23], lineColor: [190, 198, 194], lineWidth: 0.5 } });
     const weapons = [...(d.natural || []).map(id => f.items[id]), ...its.filter(i => i.cat === 'melee' || i.cat === 'ranged')];
-    const heldWith2H = its.some(i => i.cat === 'item' && i.held) && its.some(i => i.cat === 'melee' && isTwoHanded(i));
+    const poleHeld = its.some(i => i.cat === 'item' && i.held);
     if (weapons.length) {
       weapons.forEach(w => w.traits.forEach(tr => traitsUsed.add(tr.replace(/ 0-\d+/, ''))));
-      k.table(['Weapon', 'Range', 'Attacks', 'Rend', 'Damage', 'Crit', 'Traits'], weapons.map(w => [w.name, w.cat === 'ranged' ? w.rng : '-', String(heldWith2H && w.cat === 'melee' && isTwoHanded(w) && typeof w.a === 'number' ? (w.a - 1) + '*' : w.a), String(w.r), String(w.d), String(w.c), w.traits.join(', ') || '-']),
+      k.table(['Weapon', 'Range', 'Attacks', 'Rend', 'Damage', 'Crit', 'Traits'], weapons.map(w => [w.name, w.cat === 'ranged' ? w.rng : '-', String(w.a), String(w.r), String(w.d), String(w.c), shownTraits(w, poleHeld).join(', ') || '-']),
         { columnStyles: { 0: { fontStyle: 'bold', cellWidth: 110 }, 1: { halign: 'center' }, 2: { halign: 'center' }, 3: { halign: 'center' }, 4: { halign: 'center' }, 5: { halign: 'center' } } });
-      if (heldWith2H) k.small('* -1 Attack: carrying a held item with a two-handed melee weapon.');
+      if (poleHeld && weapons.some(w => w.traits.includes('Polearm') && !w.traits.includes('Unwieldy'))) k.small('* Polearm carried with a held item: gains Unwieldy (-1 to attack rolls).');
     }
     its.filter(i => i.cat === 'armour' || i.cat === 'item').forEach(i => k.para(`${i.name}${i.cat === 'armour' ? ` (Armour ${i.sv}+)` : i.held ? ' (Held item)' : ''}:`, i.text || 'Replaces the Armour value.'));
     if (mut) k.para(`${mut.name} (mutation):`, mut.text);
@@ -825,12 +943,12 @@ async function exportRosterPdf(includeCheat) {
   const wb = WB(); const f = fac(wb.faction); const k = pdfKit();
   rosterToPdf(k, wb, f);
   if (includeCheat) { k.page(); cheatToPdf(k); }
-  k.finish(`${wb.name || 'Warband'} - Black Death City Playtest 1.03`);
+  k.finish(`${wb.name || 'Warband'} - Black Death City Playtest 1.10`);
   await savePdf(k, `${fileSafe(wb.name)}-roster.pdf`);
 }
 async function exportCheatPdf() {
   if (!window.jspdf) { toast('The PDF tool is still loading. Try again in a moment.'); return; }
-  const k = pdfKit(); cheatToPdf(k); k.finish('Black Death City Playtest 1.03 - Battle cheat sheet');
+  const k = pdfKit(); cheatToPdf(k); k.finish('Black Death City Playtest 1.10 - Battle cheat sheet');
   await savePdf(k, 'black-death-city-cheat-sheet.pdf');
 }
 // ---------- Helpers ----------
@@ -866,8 +984,24 @@ const KEY = 'bdc-warbands-v1';
 let S = load();
 let ui = { tab: 'build', sel: null, detail: false, recruit: false, confirm: null, newWb: null, importText: '', showIssues: false };
 function load() {
-  try { const raw = localStorage.getItem(KEY); if (raw) { const s = JSON.parse(raw); if (s && s.warbands && s.warbands.length) return s; } } catch (e) {}
+  try { const raw = localStorage.getItem(KEY); if (raw) { const s = JSON.parse(raw); if (s && s.warbands && s.warbands.length) { s.warbands.forEach(migrate); return s; } } } catch (e) {}
   const ex = exampleWarband(); return { warbands: [ex], current: ex.id };
+}
+// Bring warbands saved under older rules up to date (e.g. the Noble's Rapier added in 1.10).
+function migrate(wb) {
+  const f = fac(wb.faction); if (!f) return wb;
+  if (!Array.isArray(wb.upgrades)) wb.upgrades = [];
+  wb.fighters = wb.fighters.filter(x => fdef(f, x.fid));
+  wb.fighters.forEach(x => {
+    const d = fdef(f, x.fid);
+    (d.fixed || []).forEach(fx => {
+      if (SLOTS.some(([k]) => x.gear[k] === fx)) return;
+      const it = f.items[fx]; const order = it.cat === 'armour' ? ['a'] : it.cat === 'melee' ? ['m1', 'm2'] : it.cat === 'ranged' ? ['r'] : ['i1', 'i2'];
+      const free = order.find(k => !x.gear[k]); x.gear[free || order[0]] = fx;
+    });
+    SLOTS.forEach(([k]) => { if (x.gear[k] && !f.items[x.gear[k]]) x.gear[k] = null; });
+  });
+  return wb;
 }
 function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
 const WB = () => S.warbands.find(w => w.id === S.current) || S.warbands[0];
@@ -897,9 +1031,14 @@ function exampleWarband() {
 
 // ---------- Derived values ----------
 function gearItems(f, x) { return SLOTS.map(([k]) => x.gear[k]).filter(Boolean).map(id => ({ id, ...f.items[id] })); }
-function fighterCost(f, x) {
+function baseCost(f, wb, d) {
+  let c = d.cost;
+  (wb && wb.upgrades || []).forEach(id => { const u = (UPGRADES[f.id] || []).find(u => u.id === id); if (u && u.costMod && kwList(d).includes(u.costMod.kw)) c += u.costMod.amount; });
+  return c;
+}
+function fighterCost(f, x, wb = WB()) {
   const d = fdef(f, x.fid); const fixed = new Set(d.fixed || []);
-  let c = d.cost; const seenFixed = new Set();
+  let c = baseCost(f, wb, d); const seenFixed = new Set();
   SLOTS.forEach(([k]) => { const id = x.gear[k]; if (!id) return; if (fixed.has(id) && !seenFixed.has(id)) { seenFixed.add(id); return; } c += f.items[id].cost; });
   if (x.opt && d.options) { const o = d.options.list.find(o => o.id === x.opt); if (o) c += o.cost; }
   return c;
@@ -915,8 +1054,12 @@ function effStats(f, x) {
   return { s, mod };
 }
 function displayName(f, x) { return x.name.trim() || fdef(f, x.fid).name; }
-function allowedItems(f, d) {
-  const ids = new Set(); d.lists.forEach(l => f.lists[l].items.forEach(i => ids.add(i))); return [...ids];
+function hasUpgrade(wb, id) { return (wb.upgrades || []).includes(id); }
+function upgradeLimit(f, wb, key) { return (UPGRADES[f.id] || []).filter(u => hasUpgrade(wb, u.id) && u[key]).map(u => u[key]); }
+function allowedItems(f, d, wb = WB()) {
+  const ids = new Set(); d.lists.forEach(l => f.lists[l].items.forEach(i => ids.add(i)));
+  if (d.type === 'Henchman' && !d.noGear && upgradeLimit(f, wb, 'henchPlate').length && f.items.full_plate) ids.add('full_plate');
+  return [...ids];
 }
 function eligibleTables(f, d) {
   const kws = kwList(d);
@@ -926,14 +1069,16 @@ function eligibleTables(f, d) {
 function fighterLimit(f, wb, d) {
   const o = f.origins[wb.origin] || {};
   if ((o.unlimited || []).includes(d.id)) return null;
-  if (o.limits && o.limits[d.id]) return o.limits[d.id];
-  return d.max || null;
+  let lim = d.max || null;
+  if (o.limits && o.limits[d.id]) lim = Math.max(lim || 0, o.limits[d.id]);
+  upgradeLimit(f, wb, 'limits').forEach(l => { if (l[d.id]) lim = Math.max(lim || 0, l[d.id]); });
+  return lim;
 }
 function countsAs(f, wb, d) { const o = f.origins[wb.origin] || {}; return (o.notBeast || []).includes(d.id) ? null : d.type; }
 
 function totals(wb) {
   const f = fac(wb.faction);
-  const cost = wb.fighters.reduce((a, x) => a + fighterCost(f, x), 0);
+  const cost = wb.fighters.reduce((a, x) => a + fighterCost(f, x, wb), 0);
   const xp = wb.fighters.reduce((a, x) => a + fighterXp(x), 0);
   return { cost, left: BUDGET - cost, rating: cost + xp, count: wb.fighters.length };
 }
@@ -945,6 +1090,9 @@ function check(wb) {
   const t = totals(wb);
   if (t.left < 0) push('error', `Over budget by ${-t.left} silver. You start with ${BUDGET}.`);
   if (t.count > MAX_FIGHTERS) push('error', `${t.count} fighters. A warband can never exceed ${MAX_FIGHTERS}.`);
+  if ((wb.upgrades || []).length > 2) push('error', `${wb.upgrades.length} stronghold upgrades chosen. A stronghold gets at most 2 (at levels 2 and 3).`);
+  const plateCap = upgradeLimit(f, wb, 'henchPlate')[0];
+  if (plateCap) { const n = wb.fighters.filter(x => fdef(f, x.fid).type === 'Henchman' && SLOTS.some(([k]) => x.gear[k] === 'full_plate')).length; if (n > plateCap) push('error', `Armourer: only ${plateCap} Henchmen can wear Full-plate (you have ${n}).`); }
   const byType = {}; TYPES.forEach(ty => byType[ty.key] = 0);
   wb.fighters.forEach(x => { const d = fdef(f, x.fid); const c = countsAs(f, wb, d); if (c) byType[c]++; });
   if (byType.Leader === 0) push('error', 'Recruit 1 Leader.');
@@ -971,7 +1119,10 @@ function check(wb) {
     if (th.length > 1) push('error', `${nm}: only 1 two-handed weapon allowed.`, x);
     const held = its.filter(i => i.cat === 'item' && i.held);
     const thR = its.filter(i => i.cat === 'ranged' && isTwoHanded(i));
-    if (held.length && thR.length) push('error', `${nm}: cannot carry a held item (${held[0].name}) with a two-handed ranged weapon.`, x);
+    const thNoPole = th.filter(i => !(i.traits || []).includes('Polearm'));
+    if (held.length && thNoPole.length) push('error', `${nm}: cannot carry a held item (${held[0].name}) with a two-handed weapon (${thNoPole[0].name}) unless it is a polearm.`, x);
+    const allowed = new Set(allowedItems(f, d, wb)); const fixedSet = new Set(d.fixed || []);
+    its.forEach(i => { if (!fixedSet.has(i.id) && !allowed.has(i.id)) push('error', `${nm}: ${i.name} is not on this fighter's wargear lists.`, x); });
     if (its.some(i => i.id === 'full_plate') && thR.some(i => !i.plateOk)) push('error', `${nm}: Full-plate cannot be worn with a two-handed ranged weapon (except a Brace of Pistols).`, x);
     its.forEach(i => { if (i.requires && !its.some(j => j.id === i.requires)) push('error', `${nm}: ${i.name} needs a ${f.items[i.requires].name}.`, x); });
     const dupItem = SLOTS.map(([k]) => x.gear[k]).filter(Boolean); const seen = new Set();
@@ -1039,6 +1190,11 @@ function viewBuild(wb, f, chk) {
         <div><label class="lbl" for="wb-origin">Origin (${esc(f.name)})</label>
           <select id="wb-origin" data-act="origin">${f.origins.map((or, i) => `<option value="${i}" ${i === wb.origin ? 'selected' : ''}>${esc(or.name)}, led by ${esc(fdef(f, or.leader).name)}</option>`).join('')}</select></div>
         ${o ? `<div class="hint"><b>Stronghold: ${esc(o.stronghold)}.</b> ${esc(o.hold)}${o.perks.length ? `<br><b>${esc(o.perks.join(' '))}</b>` : ''}</div>` : ''}
+        <details class="upg" ${(wb.upgrades || []).length ? 'open' : ''}><summary>Stronghold upgrades <span class="hint">${(wb.upgrades || []).length}/2 · campaign only</span></summary>
+          <p class="hint" style="margin:6px 0">Your stronghold gains 1 upgrade at level 2 (after 3 battles) and another at level 3 (after 8 battles). Leave these empty for a new warband.</p>
+          ${(UPGRADES[f.id] || []).map(u => { const on = (wb.upgrades || []).includes(u.id); const dis = !on && (wb.upgrades || []).length >= 2; const id = 'up-' + u.id;
+            return `<label class="opt ${on ? 'on' : ''} ${dis ? 'off' : ''}" for="${id}"><input type="checkbox" id="${id}" data-act="upgrade" data-v="${u.id}" ${on ? 'checked' : ''} ${dis ? 'disabled' : ''}><b>${esc(u.name)}</b><span class="t">${esc(u.text)}</span></label>`; }).join('')}
+        </details>
       </div>
       ${ui.showIssues || chk.list.length ? `<div class="panel stack"><h3 style="font-family:var(--f-display);font-weight:400;font-size:1.45rem">Rules check</h3>${issuesBlock(chk, f, wb)}</div>` : ''}
       <button class="btn primary" id="recruit-btn" data-act="recruit">+ Recruit a fighter</button>
@@ -1054,20 +1210,22 @@ function statRow(s, mod) {
   return `<div class="stats-wrap"><table class="stats"><thead><tr>${cols.map(c => `<th scope="col">${c[1]}</th>`).join('')}</tr></thead><tbody><tr>${cols.map(([k]) => `<td class="${mod[k] ? 'mod' : ''}">${fmt(k, s[k])}</td>`).join('')}</tr></tbody></table></div>`;
 }
 function traitChips(traits) { return traits.length ? traits.map(t => `<span class="trait" title="${esc(TRAIT_TIPS[t.replace(/ 0-\d+/, '')] || (t.startsWith('Rare') ? 'Limited across the warband' : ''))}">${esc(t)}</span>`).join('') : '-'; }
-function weaponTable(ws, heldWith2H) {
+// Polearm: with a held item (e.g. a shield) the weapon gains Unwieldy.
+function shownTraits(w, poleHeld) { const t = [...w.traits]; if (poleHeld && t.includes('Polearm') && !t.includes('Unwieldy')) t.push('Unwieldy*'); return t; }
+function weaponTable(ws, poleHeld) {
   if (!ws.length) return '';
+  const flagged = poleHeld && ws.some(w => w.traits.includes('Polearm') && !w.traits.includes('Unwieldy'));
   return `<div class="tbl-wrap"><table class="wp"><thead><tr><th>Weapon</th><th>Rng</th><th>Att</th><th>Rend</th><th>Dmg</th><th>Crit</th><th>Traits</th></tr></thead><tbody>
-    ${ws.map(w => { const a = heldWith2H && w.cat === 'melee' && isTwoHanded(w) && typeof w.a === 'number' ? `${w.a - 1}*` : w.a;
-      return `<tr><td><b>${esc(w.name)}</b></td><td class="n">${w.cat === 'ranged' ? esc(w.rng) : '-'}</td><td class="n">${a}</td><td class="n">${w.r}</td><td class="n">${w.d}</td><td class="n">${w.c}</td><td>${traitChips(w.traits)}</td></tr>`; }).join('')}
-  </tbody></table></div>${heldWith2H ? '<p class="hint">* Attacks reduced by 1 because a held item is carried with a two-handed melee weapon.</p>' : ''}`;
+    ${ws.map(w => `<tr><td><b>${esc(w.name)}</b></td><td class="n">${w.cat === 'ranged' ? esc(w.rng) : '-'}</td><td class="n">${w.a}</td><td class="n">${w.r}</td><td class="n">${w.d}</td><td class="n">${w.c}</td><td>${traitChips(shownTraits(w, poleHeld))}</td></tr>`).join('')}
+  </tbody></table></div>${flagged ? '<p class="hint">* Polearm carried with a held item, so it gains Unwieldy (-1 to attack rolls).</p>' : ''}`;
 }
 
 function viewFighter(wb, f, x, chk) {
   const d = fdef(f, x.fid); const { s, mod } = effStats(f, x); const cost = fighterCost(f, x);
-  const allowed = allowedItems(f, d); const fixed = new Set(d.fixed || []);
+  const allowed = allowedItems(f, d, wb).filter(id => !f.items[id].noBuy); const fixed = new Set(d.fixed || []);
   const its = gearItems(f, x);
   const weapons = [...(d.natural || []).map(id => ({ id, ...f.items[id] })), ...its.filter(i => i.cat === 'melee' || i.cat === 'ranged')];
-  const heldWith2H = its.some(i => i.cat === 'item' && i.held) && its.some(i => i.cat === 'melee' && isTwoHanded(i));
+  const poleHeld = its.some(i => i.cat === 'item' && i.held);
   const extras = its.filter(i => i.cat === 'armour' || i.cat === 'item');
   const iss = chk.per[x.uid] || [];
   const slotHtml = d.noGear ? '' : SLOTS.map(([k, label]) => {
@@ -1107,7 +1265,7 @@ function viewFighter(wb, f, x, chk) {
       <div class="sheet-head">
         <div style="min-width:0;flex:1"><h2>${esc(displayName(f, x))}</h2>
           <div class="kw">${esc(d.name)}${d.max ? ` (0-${fighterLimit(f, wb, d) || '∞'})` : ''} · ${esc(d.kw)}${x.opt && d.options.list.find(o => o.id === x.opt).kw ? ', ' + d.options.list.find(o => o.id === x.opt).kw : ''}</div></div>
-        <div class="price"><b>${cost}s</b><span>${d.cost}s base${cost !== d.cost ? ` + ${cost - d.cost}s gear` : ''}</span></div>
+        <div class="price"><b>${cost}s</b><span>${baseCost(f, wb, d)}s base${cost !== baseCost(f, wb, d) ? ` + ${cost - baseCost(f, wb, d)}s gear` : ''}</span></div>
       </div>
       <div><label class="lbl" for="f-name">Fighter name</label><input type="text" id="f-name" value="${esc(x.name)}" placeholder="${esc(d.name)}" data-act="fname"></div>
       ${statRow(s, mod)}
@@ -1117,7 +1275,7 @@ function viewFighter(wb, f, x, chk) {
     <section class="sec panel"><h3>Wargear <small>${d.noGear ? 'Cannot take other wargear' : 'From the ' + esc(lists) + ' (' + esc(f.armoury) + ')'}</small></h3>
       ${d.noGear ? '' : `<p class="hint" style="margin-top:0">Up to 2 melee weapons (held items like shields use a melee slot), 1 ranged weapon, 1 armour and 2 items. Only 1 two-handed weapon.</p><div class="slots">${slotHtml}</div>`}
       ${d.noGear && (d.fixed || []).length ? `<div class="locked">${(d.fixed || []).map(id => esc(f.items[id].name)).join(', ')} (included)</div>` : ''}
-      ${weapons.length ? `<div style="margin-top:14px">${weaponTable(weapons, heldWith2H)}</div>` : ''}
+      ${weapons.length ? `<div style="margin-top:14px">${weaponTable(weapons, poleHeld)}</div>` : ''}
       ${extras.length ? `<ul class="rules" style="margin-top:12px">${extras.map(i => `<li><b>${esc(i.name)}${i.cat === 'armour' ? ` (Armour ${i.sv}+)` : i.held ? ' (Held item)' : ''}${rareOf(i) ? ` · Rare 0-${rareOf(i)}` : ''}.</b> ${esc(i.text)}</li>`).join('')}</ul>` : ''}
     </section>
     ${optHtml}${skillHtml}${spellHtml}
@@ -1125,7 +1283,7 @@ function viewFighter(wb, f, x, chk) {
       ${d.alt ? `<div style="margin-top:12px"><span class="lbl">${esc(d.alt.name)} profile</span>${statRow(d.alt.s, {})}${weaponTable(d.alt.natural.map(id => ({ id, ...f.items[id] })), false)}</div>` : ''}</section>` : ''}
     <section class="sec panel"><h3>Starting experience <small>${d.xp[1] ? `${d.xp[0] ? d.xp[0] + ' + ' : ''}d6` : 'Fixed'}</small></h3>
       <div class="xp">${d.xp[1] ? `<span>${d.xp[0]} +</span><label class="lbl" for="xp-roll" style="margin:0">d6 roll</label><input type="number" id="xp-roll" min="1" max="6" value="${x.xpRoll}" data-act="xp"><button class="btn small" data-act="reroll">Roll again</button>` : ''}
-      <span>Total</span><span class="tot">${fighterXp(x)} XP</span></div>
+      <span>Total</span><span class="tot">${fighterXp(x)} XP · Rank ${rankOf(fighterXp(x))}</span></div>
       <p class="hint">Experience counts towards your warband rating, not your silver.</p></section>
     <section class="panel row">
       <button class="btn" data-act="dup">Duplicate fighter</button>
@@ -1143,20 +1301,21 @@ function viewRecruit(wb, f) {
     return `<div class="rec-group"><h3>${ty.plural} <span class="hint" style="font-family:var(--f-body);font-size:1rem">${ty.key === 'Henchman' ? 'at least 5' : 'up to ' + ty.max} · you have ${n}</span></h3>
     ${ds.map(d => { const lim = fighterLimit(f, wb, d); const have = wb.fighters.filter(x => x.fid === d.id).length; const typeFull = ty.max && n >= ty.max && countsAs(f, wb, d);
       let why = ''; if (lim && have >= lim) why = `Limit reached (0-${lim}).`; else if (typeFull) why = `${ty.plural} full (${ty.max}).`; else if (t.count >= MAX_FIGHTERS) why = 'Warband is at 15 fighters.';
-      const poor = !why && d.cost > t.left ? `Costs more than your remaining ${t.left} silver.` : '';
+      const poor = !why && baseCost(f, wb, d) > t.left ? `Costs more than your remaining ${t.left} silver.` : '';
       const o = f.origins[wb.origin]; const wrongLeader = ty.key === 'Leader' && o && o.leader !== d.id ? `${o.name} must be led by a ${fdef(f, o.leader).name}.` : '';
       return `<div class="rec"><span class="nm">${esc(d.name)}${lim ? ` <span class="hint">0-${lim}</span>` : ''}</span>
         <span class="sub">M ${d.s.mv}${typeof d.s.mv === 'number' ? '"' : '"'} · Blade ${d.s.bl}+ · Bow ${d.s.bw}${d.s.bw === '-' ? '' : '+'} · Life ${d.s.li}${d.lore ? ' · ' + esc(d.lore) : ''}${d.skills ? ` · ${d.skills} skill${d.skills > 1 ? 's' : ''}` : ''}</span>
-        <span class="c">${d.cost}s</span><button class="btn small ${why ? '' : 'primary'}" data-act="add" data-v="${d.id}" ${why ? 'disabled' : ''} aria-label="Recruit ${esc(d.name)}">Add</button>
+        <span class="c">${baseCost(f, wb, d)}s</span><button class="btn small ${why ? '' : 'primary'}" data-act="add" data-v="${d.id}" ${why ? 'disabled' : ''} aria-label="Recruit ${esc(d.name)}">Add</button>
         ${why || poor || wrongLeader ? `<span class="why">${esc(why || wrongLeader || poor)}</span>` : ''}</div>`; }).join('')}</div>`; }).join('')}
   </section></div>`;
 }
 
 function rosterText(wb, f) {
   const t = totals(wb); const o = f.origins[wb.origin];
-  const lines = [`${wb.name || 'Unnamed warband'}`, `${f.name} · ${o ? o.name : ''} · Stronghold: ${o ? o.stronghold : ''}`, `Spent ${t.cost}s · Stash ${Math.max(0, t.left)}s · Warband rating ${t.rating}`, ''];
+  const ups = (wb.upgrades || []).map(id => ((UPGRADES[f.id] || []).find(u => u.id === id) || {}).name).filter(Boolean);
+  const lines = [`${wb.name || 'Unnamed warband'}`, `${f.name} · ${o ? o.name : ''} · Stronghold: ${o ? o.stronghold : ''}${ups.length ? ' (' + ups.join(', ') + ')' : ''}`, `Spent ${t.cost}s · Stash ${Math.max(0, t.left)}s · Warband rating ${t.rating}`, ''];
   wb.fighters.forEach(x => { const d = fdef(f, x.fid); const { s } = effStats(f, x);
-    lines.push(`${displayName(f, x)} (${d.name}, ${d.type}) ${fighterCost(f, x)}s, ${fighterXp(x)} XP`);
+    lines.push(`${displayName(f, x)} (${d.name}, ${d.type}) ${fighterCost(f, x)}s, ${fighterXp(x)} XP, rank ${rankOf(fighterXp(x))}`);
     lines.push(`  M ${s.mv}" Bl ${s.bl}+ Bw ${s.bw}${s.bw === '-' ? '' : '+'} Ar ${s.ar}+ In ${s.ini} Wp ${s.wp} Li ${s.li}`);
     const g = [...(d.natural || []).map(id => f.items[id].name), ...gearItems(f, x).map(i => i.name)]; if (g.length) lines.push(`  Wargear: ${g.join(', ')}`);
     const sk = [...(d.freeSkills || []), ...x.skills]; if (sk.length) lines.push(`  Skills: ${sk.join(', ')}`);
@@ -1183,7 +1342,7 @@ function viewSheet(wb, f, chk) {
       const g = [...(d.natural || []).map(id => f.items[id].name), ...gearItems(f, x).map(i => i.name)];
       const sk = [...(d.freeSkills || []), ...x.skills];
       const cell = (l, v) => `<div><small>${l}</small><b>${v}</b></div>`;
-      return `<article class="card"><h3>${esc(displayName(f, x))}<span>${fighterCost(f, x)}s</span></h3><div class="kw">${esc(d.name)} · ${esc(d.type)} · ${fighterXp(x)} XP</div>
+      return `<article class="card"><h3>${esc(displayName(f, x))}<span>${fighterCost(f, x)}s</span></h3><div class="kw">${esc(d.name)} · ${esc(d.type)} · ${fighterXp(x)} XP · Rank ${rankOf(fighterXp(x))}</div>
         <div class="mini">${cell('Move', s.mv + '"')}${cell('Blade', s.bl + '+')}${cell('Bow', s.bw === '-' ? '-' : s.bw + '+')}${cell('Armour', s.ar + '+')}${cell('Init', s.ini)}${cell('Will', s.wp)}${cell('Life', s.li)}</div>
         <dl><dt>Wargear</dt><dd>${esc(g.join(', ') || 'None')}</dd>${sk.length ? `<dt>Skills</dt><dd>${esc(sk.join(', '))}</dd>` : ''}${x.spells.length ? `<dt>Spells</dt><dd>${esc(x.spells.join(', '))}</dd>` : ''}${x.opt ? `<dt>Mutation</dt><dd>${esc(d.options.list.find(o => o.id === x.opt).name)}</dd>` : ''}</dl></article>`; }).join('')}</div>
   </div>`;
@@ -1251,7 +1410,7 @@ app.addEventListener('click', e => {
     case 'nworg': ui.newWb.origin = +v; render(); break;
     case 'create': { const nf = fac(ui.newWb.faction); const w = { id: uid(), name: ui.newWb.name.trim() || 'New warband', faction: nf.id, origin: ui.newWb.origin, fighters: [] };
       const ld = makeFighter(nf, nf.origins[w.origin].leader, w); w.fighters.push(ld); S.warbands.push(w); S.current = w.id; ui.newWb = { name: '', faction: null, origin: null }; ui.tab = 'build'; ui.sel = ld.uid; ui.detail = true; save(); render(); window.scrollTo(0, 0); toast('Warband created'); break; }
-    case 'import': try { const w = JSON.parse(decodeURIComponent(escape(atob(ui.importText.trim())))); if (!w.faction || !fac(w.faction) || !Array.isArray(w.fighters)) throw 0; w.id = uid(); w.example = false; S.warbands.push(w); S.current = w.id; ui.importText = ''; ui.importErr = ''; ui.tab = 'build'; save(); render(); toast('Warband imported'); } catch (err) { ui.importErr = "That code wasn't recognised. Copy the whole code and try again."; render(); } break;
+    case 'import': try { const w = JSON.parse(decodeURIComponent(escape(atob(ui.importText.trim())))); if (!w.faction || !fac(w.faction) || !Array.isArray(w.fighters)) throw 0; migrate(w); w.id = uid(); w.example = false; S.warbands.push(w); S.current = w.id; ui.importText = ''; ui.importErr = ''; ui.tab = 'build'; save(); render(); toast('Warband imported'); } catch (err) { ui.importErr = "That code wasn't recognised. Copy the whole code and try again."; render(); } break;
   }
 });
 app.addEventListener('change', e => {
@@ -1261,6 +1420,7 @@ app.addEventListener('change', e => {
   else if (a === 'skill') { const n = el.dataset.v; x.skills = el.checked ? [...x.skills, n] : x.skills.filter(s => s !== n); commit(); }
   else if (a === 'spell') { const n = el.dataset.v; x.spells = el.checked ? [...x.spells, n] : x.spells.filter(s => s !== n); commit(); }
   else if (a === 'opt') { x.opt = el.checked ? el.dataset.v : null; commit(); }
+  else if (a === 'upgrade') { const v = el.dataset.v; wb.upgrades = el.checked ? [...(wb.upgrades || []), v] : (wb.upgrades || []).filter(u => u !== v); commit(); }
   else if (a === 'xp') { x.xpRoll = Math.max(0, Math.min(6, parseInt(el.value) || 0)); commit(); }
   else if (a === 'wbname' || a === 'fname') { commit(); }
   else if (a === 'cheatinc') { ui.cheatInc = el.checked; }
