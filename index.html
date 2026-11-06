@@ -210,6 +210,11 @@ table.cst td.k { font-weight: 700; white-space: nowrap; }
 details.upg { border-top: 1px solid var(--line); padding-top: 10px; }
 details.upg summary { cursor: pointer; font-weight: 700; min-height: 32px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 details.upg .opt { margin-top: 6px; }
+table.cst td.k:empty { border-bottom-color: transparent; }
+.tw-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 380px), 1fr)); gap: 16px 24px; }
+.tw h4 { margin: 0 0 6px; font-family: var(--f-label); letter-spacing: .04em; font-size: 1.02rem; border-bottom: 2px solid var(--line-strong); padding-bottom: 4px; }
+.csl.tw-l { grid-template-columns: 28px minmax(0, 1fr); }
+.csl.tw-l dt { text-align: center; font-variant-numeric: tabular-nums; }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
@@ -717,6 +722,41 @@ const CHEAT = [
     ['5', 'Street of Death', 'Defender: the Hit plus d6 escorts, rest in 2 groups. Ambusher (underdog): 2 groups', 'Defender sets up the Hit and escorts on the street more than 18" from the escape edge. Ambusher sets up 1 group anywhere more than 12" from enemies.', 'Ambusher round 2, Defender round 3. Roll a d6 per fighter for which edge.', 'Hit escapes off the escape edge: Defender wins. Hit taken down: Ambusher wins. Defender never flees. +20 XP.'],
     ['6', 'The Find', '2', 'Attacker wins a roll-off. Defender places 5 treasure within 3" of the centre of an 8"x8" holding. Attacker deploys within 6" of entry point; Defender within 3" of the holding.', 'Round 3', 'Get 3 fighters off the board with treasure. Defender cannot pick up treasure before round 3.'],
   ] } },
+  { id: 'twists', title: 'Scenario twists', note: 'Roll on the twist table for the scenario you are playing. The Chapel rolls a d3; every other scenario rolls a d6.', table: { head: ['Scenario', 'Roll', 'Twist'], rows: [
+    ['1. A Deadly Encounter', '1', 'A Brewing Storm: from round 2, roll each round; on a 5+ rain starts for the rest of the battle. Fighters can only see 12", and misfire rolls are -1 (minimum 1).'],
+    ['', '2', 'Battle for the Tower: a tower stands in the centre. Your flee tests pass automatically while you have a Leader or Champion wholly within 6" of the centre, and Hold the Centre scores 3 VP instead of d3. The winner gains 1 exploration re-roll.'],
+    ['', '3', 'Outflank: each warband splits into 3 battle groups instead of 2.'],
+    ['', '4', 'Delayed Arrival: reinforcements arrive from round 6 instead of round 3.'],
+    ['', '5', 'Condemned: each round, a warband behind on VP picks 1 enemy fighter. Taking that fighter down this round scores 1 extra VP.'],
+    ['', '6', 'The Chest: the underdog places a chest within 6" of an unused entry point. Your flee tests pass automatically with a Leader or Champion within 3" of it. At the end of each round, having fighters within 3" with no enemies there scores 1 VP. The winner opens it: 1 empty, 2-5 d6x10 silver, 6 3d6x5 silver.'],
+    ['2. Glimmers in the Dark', '1', 'Cursed Coin: a fighter ending its activation holding treasure must pass Willpower or take d3 damage (Demons and Undead are immune).'],
+    ['', '2', 'False Riches: place 5 treasures instead of 3. The first time a fighter comes within 3" of each, roll: on a 1-2 it is worthless and removed.'],
+    ['', '3', 'Thieves in the Dark: fighters can only see 9".'],
+    ['', '4', "Beggar's Desperation: +1 to melee attack rolls for a fighter without treasure fighting an enemy who holds treasure."],
+    ['', '5', "Saint Trickster's Game: the underdog places 1 treasure within 3\" of the centre. Each time a new one is picked up, another scatters 3d6\" from the centre, up to 5 in total."],
+    ['', '6', 'Upturned Wagon: the underdog places 6 treasures within 3" of the centre, each more than 1" apart.'],
+    ['3. No Quarter', '1', 'Rolling Fog: each round, roll for each quarter; on a 4+ it is fogged. Fighters more than 6" apart cannot see each other if either is in a fogged quarter. If no quarter is fogged, the fog lifts for good.'],
+    ['', '2', 'Show of Strength: no battle groups or reserves. Deploy your whole warband within 9" of your entry point.'],
+    ['', '3', 'The Forsaken Quarter: from round 4, a player behind on marks picks a quarter that cannot be controlled that round.'],
+    ['', '4', "Turf War: controlling your opponent's home quarter (where their entry point is) scores 3 marks instead of 1."],
+    ['', '5', 'The Critical Quarter: from round 3, randomly pick a quarter each round; controlling it scores 1 extra mark.'],
+    ['', '6', "Saint's Statue: a fighter finishing its activation within 6\" of the centre heals d3 (Demons and Undead are not affected)."],
+    ['4. The Chapel (d3)', '1', 'A Hidden Trove: the underdog places 5 treasures in the chapel instead of 3: one at the centre and the rest within 1" of different corners.'],
+    ['', '2', 'Desecrated Ground: the first time a fighter is taken down in the chapel, roll a d6. 1-2 Light Rain: roll each later round, on a 4+ Heavy Rain starts. 3 Heavy Rain: see 12" only, misfire rolls -1. 4 Grass Sprouts: fighters ending a move on the chapel floor heal 1 (Demons and Undead take 1 damage instead). 5 Blood Frenzy: +1 Attacks to melee weapons in the chapel. 6 Thunder Claps: the round ends; roll again on the next take-down in the chapel.'],
+    ['', '3', "The Saint's Sarcophagus: placed at the centre. As an action, a fighter touching it and not engaged rolls to pry the lid (6+, +1 per earlier try by your warband this round; not Beasts). Roll a d6: 1 Unholy Curse: the opener takes d6, and others in the chapel take d6 unless they pass Willpower. 2-4 nothing. 5 Coin Purse: a treasure worth 3d6x5 silver. 6 Heirloom: the winner rolls on the Relic table."],
+    ['5. Street of Death', '1', 'Drunk as an Eel: when the Hit activates, roll: on a 1-5 it scatters d6" and its activation ends; on a 6 it sobers up. Taking damage or being engaged also sobers it up (Demons and Undead are immune).'],
+    ['', '2', 'Heavy Downpour: fighters can only see 9", and misfire rolls are -1. From round 2, roll each round: if the roll is lower than the round number, the rain stops.'],
+    ['', '3', "Vow of Blood: the Hit has +3 Life this battle."],
+    ['', '4', 'Hidden Tunnel: the Defender places 2 tokens within 6" of each other, off the street. The Hit can travel from one to the other once.'],
+    ['', '5', 'Shadows Lurk Above: the Ambusher can deploy within 12" of enemies if the fighter is 3" or more above the floor and more than 9" from every enemy.'],
+    ['', '6', "Tip-off: both of the Defender's battle groups arrive at the start of round 3."],
+    ['6. The Find', '1', 'On Fire: roll each round; on a 4+ the fire becomes a blaze (d3 damage for moving through the holding), then on another 4+ an inferno (also, at the end of each round, roll for each treasure in the holding: on a 4+ it is destroyed).'],
+    ['', '2', "Defiant Stand: the Defender doesn't take flee tests."],
+    ['', '3', 'Barricaded Holdout: when deploying, the Defender places d3 wall sections (up to 5" each) on the edge of the holding.'],
+    ['', '4', 'Delayed Arrival: reinforcements arrive from round 6 instead of round 3.'],
+    ['', '5', 'Surrounded on All Sides: the Attacker deploys both battle groups anywhere wholly within 6" of a battlefield edge. The Defender can pick up treasure from round 1.'],
+    ['', '6', "Old Debt Collector's House: 8 treasures in the holding instead of 5."],
+  ] } },
   { id: 'treasure', title: 'Treasure', list: [
     ['Picking up', 'During a Normal Move, within ½": costs 1" of movement. One treasure per fighter. Beasts and Thralls cannot carry it.'],
     ['Dropping', 'Taken down: drop it. Damaged but not taken down: roll at end of activation, on a 1 drop it.'],
@@ -801,7 +841,9 @@ const CHEAT = [
 ];
 
 function viewCheat() {
-  const sec = c => `<section class="cs panel"><h3>${esc(c.title)}</h3>
+  const twistsHtml = c => { const groups = []; c.table.rows.forEach(r => { if (r[0]) groups.push({ name: r[0], rows: [] }); groups[groups.length - 1].rows.push(r); });
+    return `<section class="cs panel"><h3>${esc(c.title)}</h3><p class="hint" style="margin-top:0">${esc(c.note)}</p><div class="tw-grid">${groups.map(g => `<div class="tw"><h4>${esc(g.name)}</h4><dl class="csl tw-l">${g.rows.map(r => { const [nm, ...rest] = r[2].split(': '); const t = rest.join(': '); return `<dt>${esc(r[1])}</dt><dd><b>${esc(nm)}.</b> ${esc(t.charAt(0).toUpperCase() + t.slice(1))}</dd>`; }).join('')}</dl></div>`).join('')}</div></section>`; };
+  const sec = c => c.id === 'twists' ? twistsHtml(c) : `<section class="cs panel"><h3>${esc(c.title)}</h3>
     ${c.note ? `<p class="hint" style="margin-top:0">${esc(c.note)}</p>` : ''}
     ${c.list ? `<dl class="csl">${c.list.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}</dl>` : ''}
     ${c.table ? `<div class="tbl-wrap"><table class="wp cst"><thead><tr>${c.table.head.map(h => `<th>${esc(h)}</th>`).join('')}</tr></thead><tbody>${c.table.rows.map(r => `<tr>${r.map((v, i) => `<td${i === 0 ? ' class="k"' : ''}>${esc(v)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>` : ''}</section>`;
@@ -812,7 +854,7 @@ function viewCheat() {
       <button class="btn primary" data-act="pdf-cheat">Download cheat sheet PDF</button></section>
     ${noDlNote()}
     ${cols(['setup', 'round', 'activation', 'reserve'])}
-    ${by('scenarios')}${by('moves')}
+    ${by('scenarios')}${by('twists')}${by('moves')}
     ${cols(['melee', 'ranged', 'resolve', 'hide', 'arcane', 'misfire', 'terrain', 'treasure', 'traits'])}
     <section class="panel" id="campaign"><h2 style="font-family:var(--f-display);font-weight:400;font-size:2rem">Campaign: between battles</h2><div class="hint">Underdog bonuses, the aftermath sequence, injuries, advances, exploring and downtime.</div></section>
     ${by('c_aftermath')}
@@ -867,13 +909,14 @@ function pdfKit(title) {
 }
 function cheatToPdf(k) {
   k.h1('Black Death City: Battle Cheat Sheet', 'Set-up, deployment, turn sequence, actions and tables. Summarised from the Black Death City Playtest 1.10 rules.');
-  const ORDER = ['setup', 'scenarios', 'reserve', 'round', 'activation', 'moves', 'terrain', 'melee', 'ranged', 'resolve', 'hide', 'arcane', 'misfire', 'treasure', 'traits', 'c_underdog', 'c_aftermath', 'c_injury', 'c_injury_other', 'c_advance', 'c_explore', 'c_downtime', 'c_stronghold'];
+  const ORDER = ['setup', 'scenarios', 'twists', 'reserve', 'round', 'activation', 'moves', 'terrain', 'melee', 'ranged', 'resolve', 'hide', 'arcane', 'misfire', 'treasure', 'traits', 'c_underdog', 'c_aftermath', 'c_injury', 'c_injury_other', 'c_advance', 'c_explore', 'c_downtime', 'c_stronghold'];
   ORDER.map(id => CHEAT.find(c => c.id === id)).forEach(c => {
     if (c.id === 'c_underdog') { k.page(); k.h1('Campaign: Between Battles', 'Underdog bonuses, the aftermath sequence, injuries, advances, exploring and downtime.'); }
     k.h2(c.title);
     if (c.note) k.small(c.note);
     if (c.list) c.list.forEach(([a, b]) => k.para(a + ':', b));
-    if (c.table) { const wide = c.table.head.length > 3; k.table(c.table.head, c.table.rows, { columnStyles: { 0: { fontStyle: 'bold', cellWidth: wide ? 'wrap' : (c.table.head.length === 2 ? 70 : 'auto') } } }); }
+    if (c.table && c.id === 'twists') { k.table(c.table.head, c.table.rows, { columnStyles: { 0: { fontStyle: 'bold', cellWidth: 95 }, 1: { cellWidth: 32, halign: 'center' } } }); }
+    else if (c.table) { const wide = c.table.head.length > 3; k.table(c.table.head, c.table.rows, { columnStyles: { 0: { fontStyle: 'bold', cellWidth: wide ? 'wrap' : (c.table.head.length === 2 ? 70 : 'auto') } } }); }
     k.gap(4);
   });
 }
