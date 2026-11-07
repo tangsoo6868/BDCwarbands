@@ -1396,13 +1396,31 @@ const SLOTS = [['m1', 'Melee weapon 1'], ['m2', 'Melee weapon 2 or held item'], 
 const slotAccepts = (slot, it) => slot === 'm1' || slot === 'm2' ? (it.cat === 'melee' || (it.cat === 'item' && it.held)) : slot === 'r' ? it.cat === 'ranged' : slot === 'a' ? it.cat === 'armour' : (it.cat === 'item' && !it.held);
 
 // ---------- State ----------
-const KEY = 'bdc-warbands-v1';
+const KEY = 'bdc-warbands-v1', BACKUP_PREFIX = 'bdc-backup-';
+let loadProblem = null; // raw saved data we could not read; never overwritten
 let S = load();
 let ui = { tab: 'build', sel: null, detail: false, recruit: false, confirm: null, newWb: null, importText: '', showIssues: false };
 function load() {
-  try { const raw = localStorage.getItem(KEY); if (raw) { const s = JSON.parse(raw); if (s && s.warbands && s.warbands.length) { s.warbands.forEach(migrate); return s; } } } catch (e) {}
+  let raw = null; try { raw = localStorage.getItem(KEY); } catch (e) {}
+  if (raw) {
+    try {
+      const s = JSON.parse(raw);
+      if (s && Array.isArray(s.warbands) && s.warbands.length) { snapshot(raw, s); s.warbands.forEach(migrate); return s; }
+    } catch (e) { loadProblem = raw; }
+  }
   const ex = exampleWarband(); return { warbands: [ex], current: ex.id };
 }
+// Keep one backup per day (last 10 days) of real warbands, taken before any update touches them.
+function snapshot(raw, s) {
+  try {
+    if (!s.warbands.some(w => !w.example)) return;
+    const day = new Date().toISOString().slice(0, 10);
+    if (localStorage.getItem(BACKUP_PREFIX + day) === null) localStorage.setItem(BACKUP_PREFIX + day, raw);
+    backupKeys().slice(10).forEach(k => localStorage.removeItem(k));
+  } catch (e) {}
+}
+function backupKeys() { const ks = []; try { for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k && k.startsWith(BACKUP_PREFIX)) ks.push(k); } } catch (e) {} return ks.sort().reverse(); }
+function readBackup(k) { try { const s = JSON.parse(localStorage.getItem(k)); return s && Array.isArray(s.warbands) ? s : null; } catch (e) { return null; } }
 // Bring warbands saved under older rules up to date (e.g. the Noble's Rapier added in 1.10).
 function migrate(wb) {
   const f = fac(wb.faction); if (!f) return wb;
@@ -1420,7 +1438,7 @@ function migrate(wb) {
   });
   return wb;
 }
-function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
+function save() { if (loadProblem) return; try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
 const WB = () => S.warbands.find(w => w.id === S.current) || S.warbands[0];
 
 function makeFighter(f, id, wb) {
@@ -1587,7 +1605,7 @@ function issuesBlock(chk, f, wb) {
 
 function viewBuild(wb, f, chk) {
   const o = f.origins[wb.origin];
-  const banner = wb.example ? `<div class="banner"><span>This is an example warband so you can see how it works.</span><button class="btn small" data-act="tab" data-v="bands">Start your own</button></div>` : '';
+  const banner = loadProblem ? `<div class="banner" role="alert"><span>Your saved warbands couldn't be read. They have been left untouched. See My warbands.</span><button class="btn small" data-act="tab" data-v="bands">My warbands</button></div>` : wb.example ? `<div class="banner"><span>This is an example warband so you can see how it works.</span><button class="btn small" data-act="tab" data-v="bands">Start your own</button></div>` : '';
   const groups = TYPES.map(ty => {
     const xs = wb.fighters.filter(x => typeNow(f, x) === ty.key);
     const counted = xs.filter(x => countsAs(f, wb, fdef(f, x.fid))).length;
@@ -1800,7 +1818,11 @@ function viewBands() {
     <p class="hint" style="margin:0">Send players this link so they can build their own warbands. Each player's warbands stay in their own browser. To share a finished warband, use <b>Copy warband code</b> below and have them paste it under <b>Import a warband</b>.</p>
     <div class="sharelink" id="share-url">${esc(SHARE_URL)}</div>
     <div class="row"><button class="btn primary" id="share-copy" data-act="sharelink">Copy link</button><button class="btn" id="share-invite" data-act="shareinvite">Copy invite message</button></div></section>`;
-  return `<div class="stack">${share}${create}${list}${imp}</div>`;
+  const bks = backupKeys().map(k => ({ k, s: readBackup(k) })).filter(b => b.s);
+  const backups = `<section class="panel stack"><h2 style="font-family:var(--f-display);font-weight:400;font-size:2rem">Backups</h2>
+    <p class="hint" style="margin:0">The builder keeps a daily copy of your warbands in this browser (last 10 days). Restoring adds the backed-up warbands alongside your current ones; nothing is deleted.</p>
+    ${bks.length ? `<ul class="wblist">${bks.map(b => `<li class="wbitem"><div><b>${esc(b.k.slice(BACKUP_PREFIX.length))}</b><div class="hint">${esc(b.s.warbands.filter(w => !w.example).map(w => w.name || 'Unnamed warband').join(', ') || 'Example only')}</div></div><button class="btn small" data-act="restore" data-v="${esc(b.k)}">Restore</button></li>`).join('')}</ul>` : '<p class="hint" style="margin:0">No backups yet. One is made the first time you open the builder each day.</p>'}</section>`;
+  return `<div class="stack">${loadProblem ? `<div class="banner" role="alert"><span>Your saved warbands couldn't be read, so they have been left untouched and nothing will be saved over them. Tap the button to copy the saved data and send it to whoever looks after this builder.</span><button class="btn small" data-act="copyraw">Copy saved data</button></div>` : ''}${share}${create}${list}${imp}${backups}</div>`;
 }
 
 // ---------- Events ----------
@@ -1830,6 +1852,10 @@ app.addEventListener('click', e => {
     case 'reroll': x.xpRoll = d6(); commit(); break;
     case 'copytext': copy(rosterText(wb, f), 'Roster copied'); break;
     case 'sharelink': copy(SHARE_URL, 'Link copied'); break;
+    case 'copyraw': copy(loadProblem || '', 'Saved data copied'); break;
+    case 'restore': { const bk = readBackup(v); if (!bk) { toast("That backup couldn't be read."); break; } const have = new Set(S.warbands.map(w => w.id)); let added = 0;
+      bk.warbands.filter(w => !w.example).forEach(w => { migrate(w); if (have.has(w.id)) w = Object.assign(w, { id: uid(), name: (w.name || 'Warband') + ' (restored)' }); S.warbands.push(w); added++; });
+      if (added) S.current = S.warbands[S.warbands.length - 1].id; save(); render(); toast(added ? `${added} warband${added > 1 ? 's' : ''} restored` : 'That backup only had the example warband.'); break; }
     case 'shareinvite': copy(`Join the Black Death City campaign! Build your warband here: ${SHARE_URL}\n\nPick your faction and origin under My warbands, recruit your fighters on the Build tab, and fix anything the rules check flags. When you're done, go to My warbands, tap "Copy warband code" and send it to me so I can import it. The Cheat sheet tab has deployment, turns and actions for game night.`, 'Invite message copied'); break;
     case 'pdf-roster': exportRosterPdf(ui.cheatInc !== false); break;
     case 'pdf-cheat': exportCheatPdf(); break;
