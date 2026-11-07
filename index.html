@@ -363,8 +363,16 @@ table.cst td.k { font-family: var(--f-body); }
 .wb-fac b { font-family: var(--f-display); font-weight: 400; font-size: 1.4rem; line-height: 1.1; }
 .choice-art { margin-bottom: 4px; }
 .fbtn[aria-current="true"] .art, .tab[aria-selected="true"] .art { color: var(--surface); }
-.foot { display: flex; gap: 10px; align-items: center; padding-block: 18px 30px; color: var(--muted); font-size: .88rem; font-style: italic; border-top: 1px solid var(--line-strong); }
-.foot a { color: var(--ink); }
+footer.wrap { padding-block: 8px 40px; }
+.credit { display: flex; flex-wrap: wrap; align-items: center; gap: 16px 22px; padding: 20px 22px; background: var(--surface); border: 2px solid var(--line-strong); border-radius: var(--r); box-shadow: 0 0 0 4px var(--surface), 0 0 0 5px var(--line-strong); margin: 6px 5px 0; }
+.credit-t { flex: 1 1 320px; min-width: 0; }
+.credit h2 { font-family: var(--f-display); font-weight: 400; font-size: 2rem; line-height: 1.1; }
+.credit h2 span { font-family: var(--f-body); font-style: italic; font-size: 1.15rem; white-space: nowrap; }
+.credit p { margin: 6px 0 0; font-size: 1.02rem; max-width: 62ch; }
+.credit-btn { font-size: 1.08rem; padding: 10px 20px; }
+.brand .by { font-family: var(--f-body); font-size: .95rem; font-style: italic; color: var(--ink); white-space: nowrap; text-decoration: underline; text-decoration-color: var(--line); text-underline-offset: 3px; }
+.brand .by:hover { text-decoration-color: var(--ink); }
+@media (max-width: 600px) { .credit { padding: 16px; } .credit-btn { width: 100%; } }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
@@ -1632,7 +1640,7 @@ function render() {
   const wb = WB(); const f = fac(wb.faction); const t = totals(wb); const chk = check(wb);
   app.innerHTML = `
   <header class="bar"><div class="wrap">
-    <div class="brand">${art('emblem', 44, 'emb')}<span class="brand-t">Black Death City<small>${esc(wb.name || 'Unnamed warband')} · ${esc(f.name)}</small></span></div>
+    <div class="brand">${art('emblem', 44, 'emb')}<span class="brand-t"><span>Black Death City <a class="by" href="https://www.blackdeathcity.com" target="_blank" rel="noopener">by Sam Pearson</a></span><small>${esc(wb.name || 'Unnamed warband')} · ${esc(f.name)}</small></span></div>
     <div class="tally">
       <div class="tal ${t.left < 0 ? 'bad' : ''}"><b>${t.left}</b><span>${inCampaign(wb) ? 'Treasury' : '<span class="lg">Silver left</span><span class="sm">Silver</span>'}</span></div>
       ${inCampaign(wb) ? `<div class="tal"><b>${wb.campaign.battles.length}</b><span>Battles</span></div>` : `<div class="tal"><b>${t.cost}</b><span>Spent</span></div>`}
@@ -1646,7 +1654,12 @@ function render() {
     ${[['build', 'Build', 'Build'], ['campaign', 'Campaign', 'Campaign'], ['sheet', 'Roster sheet', 'Roster'], ['cheat', 'Cheat sheet', 'Rules'], ['bands', 'My warbands', 'Bands']].map(([k, l, sh]) => `<button class="tab" role="tab" id="tab-${k}" aria-selected="${ui.tab === k}" data-act="tab" data-v="${k}"><span class="lg">${l}</span><span class="sm">${sh}</span></button>`).join('')}
   </div></nav>
   <main class="wrap">${ui.tab === 'build' ? viewBuild(wb, f, chk) : ui.tab === 'campaign' ? viewCampaign(wb, f) : ui.tab === 'sheet' ? viewSheet(wb, f, chk) : ui.tab === 'cheat' ? viewCheat() : viewBands()}</main>
-  <footer class="wrap foot"><span>${art('emblem', 22)}</span><span>An unofficial, free fan tool for <b>Black Death City</b> by Sam Pearson. Rules and game © Sam Pearson; get the rules and join the community at <a href="https://www.blackdeathcity.com" target="_blank" rel="noopener">BlackDeathCity.com</a>.</span></footer>`;
+  <footer class="wrap"><div class="credit">
+    ${art('emblem', 56)}
+    <div class="credit-t"><h2>Black Death City <span>by Sam Pearson</span></h2>
+      <p>Black Death City is Sam Pearson's game. The rules, setting and artwork are his. This builder is an unofficial, free fan tool. Download the latest rules, leave feedback and join the community on his website.</p></div>
+    <a class="btn primary credit-btn" href="https://www.blackdeathcity.com" target="_blank" rel="noopener">Visit BlackDeathCity.com</a>
+  </div></footer>`;
   const bar = app.querySelector('.bar'); if (bar) document.documentElement.style.setProperty('--barh', bar.offsetHeight + 'px');
   if (active) { const el = document.getElementById(active); if (el) el.focus({ preventScroll: true }); }
   window.scrollTo(0, sy);
