@@ -215,6 +215,47 @@ table.cst td.k:empty { border-bottom-color: transparent; }
 .tw h4 { margin: 0 0 6px; font-family: var(--f-label); letter-spacing: .04em; font-size: 1.02rem; border-bottom: 2px solid var(--line-strong); padding-bottom: 4px; }
 .csl.tw-l { grid-template-columns: 28px minmax(0, 1fr); }
 .csl.tw-l dt { text-align: center; font-variant-numeric: tabular-nums; }
+/* Campaign mode */
+.cgrid { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 22px; align-items: start; }
+@media (max-width: 980px) { .cgrid { grid-template-columns: minmax(0, 1fr); } }
+.dh { font-family: var(--f-display); font-weight: 400; font-size: 1.6rem; display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+.dh small { font-family: var(--f-body); font-size: .95rem; color: var(--muted); }
+.dh2 { font-family: var(--f-display); font-weight: 400; font-size: 2.1rem; }
+.steps { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 4px; font-size: .97rem; }
+.cflist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.cf { border: 2px solid var(--line); border-radius: var(--r); padding: 10px 12px; background: var(--surface-2); display: flex; flex-direction: column; gap: 8px; }
+.cf-h { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; }
+.cf-a { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.xpb { gap: 6px; }
+.linkish { background: none; border: 0; padding: 0; color: var(--ink); text-decoration: underline; text-decoration-color: var(--line-strong); text-underline-offset: 3px; cursor: pointer; font-size: 1.05rem; text-align: left; }
+.pill { display: inline-flex; align-items: center; font-size: .82rem; font-weight: 700; padding: 2px 9px; border-radius: 999px; border: 1px solid var(--line-strong); background: var(--surface); white-space: nowrap; }
+.pill.go { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); cursor: pointer; }
+.pill.warnp { background: var(--warn-soft); color: var(--warn); border-color: transparent; }
+.pill.badp { background: var(--bad-soft); color: var(--bad); border-color: transparent; white-space: normal; }
+.result { padding: 8px 12px; border-radius: var(--r); background: var(--accent-soft); font-weight: 600; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.result.bad { background: var(--bad-soft); color: var(--bad); }
+.bigsilver { font-size: 2.6rem; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1; }
+.bigsilver span { font-size: 1rem; font-weight: 600; color: var(--muted); }
+.lgl { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.lgl li { display: flex; gap: 10px; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+.lgl li > span:nth-child(2) { flex: 1; min-width: 140px; }
+.amt { min-width: 52px; font-weight: 800; font-variant-numeric: tabular-nums; text-align: right; }
+.amt.pos { color: var(--good); } .amt.neg { color: var(--bad); }
+.x { background: none; border: 1px solid var(--line); color: var(--muted); border-radius: var(--r); min-width: 36px; min-height: 36px; cursor: pointer; }
+.x:hover { color: var(--bad); border-color: var(--bad); }
+.bform { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1.2fr) minmax(0, .8fr) auto; gap: 8px; }
+@media (max-width: 600px) { .bform { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
+details.ledger summary { cursor: pointer; font-weight: 700; min-height: 32px; display: flex; align-items: center; }
+textarea.notes { font-family: var(--f-body); font-size: 1rem; min-height: 140px; }
+.sub-h { margin: 6px 0 0; font-family: var(--f-label); letter-spacing: .04em; font-size: 1.05rem; display: flex; gap: 10px; align-items: center; justify-content: space-between; border-top: 1px solid var(--line); padding-top: 12px; }
+.sub-h span { font-family: var(--f-body); letter-spacing: 0; font-weight: 500; color: var(--muted); font-size: .92rem; }
+.advb { gap: 6px; }
+button.optbtn { width: 100%; text-align: left; background: var(--surface); font: inherit; color: inherit; display: grid; grid-template-columns: minmax(0, 1fr); }
+button.optbtn .t { grid-column: 1; }
+.rot { gap: 8px; }
+table.stats td.mod.bad { color: var(--bad); }
+.campaign-sec { border-color: var(--accent); }
+.camp-cta { justify-content: space-between; }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
@@ -923,14 +964,18 @@ function cheatToPdf(k) {
 function skillText(f, name) { for (const tb of [...f.skillTables, VETERAN]) { const s = tb.skills.find(s => s[0] === name); if (s) return s[1]; } return ''; }
 function rosterToPdf(k, wb, f) {
   const t = totals(wb); const o = f.origins[wb.origin]; const chk = check(wb);
-  k.h1(wb.name || 'Unnamed warband', `${f.name} - ${o ? o.name : ''}. Warband rating ${t.rating}. Spent ${t.cost} silver, stash ${Math.max(0, t.left)} silver. ${wb.fighters.length} fighters.`);
-  if (o) { k.para(`Stronghold: ${o.stronghold}.`, `Income 3d6x5 silver. ${o.hold}`); if (o.perks.length) k.para('Origin:', o.perks.join(' ')); }
+  k.h1(wb.name || 'Unnamed warband', `${f.name} - ${o ? o.name : ''}. Warband rating ${t.rating}. ${inCampaign(wb) ? `Treasury ${t.left} silver, ${wb.campaign.battles.length} battles` : `Spent ${t.cost} silver, stash ${Math.max(0, t.left)} silver`}. ${wb.fighters.length} fighters.`);
+  if (o) { k.para(`Stronghold: ${o.stronghold}${inCampaign(wb) ? ` (level ${strongholdLevel(wb)})` : ''}.`, `Income ${inCampaign(wb) ? INCOME_DICE[strongholdLevel(wb)] : 3}d6x5 silver. ${o.hold}`); if (o.perks.length) k.para('Origin:', o.perks.join(' ')); }
   (wb.upgrades || []).forEach(id => { const u = (UPGRADES[f.id] || []).find(u => u.id === id); if (u) k.para(`Stronghold upgrade - ${u.name}:`, u.text); });
+  if (inCampaign(wb)) { const c = wb.campaign; const w = c.battles.filter(b => b.result === 'won').length, l = c.battles.filter(b => b.result === 'lost').length;
+    k.para('Campaign:', `Treasury ${treasury(wb)} silver. ${c.battles.length} battles (${w} won, ${l} lost).${c.stash.length ? ` Stash: ${c.stash.map(st => f.items[st.item].name).join(', ')}.` : ''}`);
+    if (c.fallen.length) k.para('Fallen and retired:', c.fallen.map(y => `${displayName(f, y)} (${y.fate})`).join(', ') + '.');
+    if (c.notes.trim()) k.para('Notes:', c.notes.trim().replace(/\s*\n\s*/g, ' / ')); }
   if (chk.list.length) k.small(`Not yet legal: ${chk.list.map(i => i.msg).join(' ')}`);
   const order = TYPES.map(ty => ty.key);
-  const xs = [...wb.fighters].sort((a, b) => order.indexOf(fdef(f, a.fid).type) - order.indexOf(fdef(f, b.fid).type));
+  const xs = [...wb.fighters].sort((a, b) => order.indexOf(typeNow(f, a)) - order.indexOf(typeNow(f, b)));
   k.table(['Fighter', 'Type', 'M', 'Bl', 'Bw', 'Ar', 'In', 'Wp', 'Li', 'XP', 'Cost'], xs.map(x => { const d = fdef(f, x.fid); const { s } = effStats(f, x);
-    return [`${displayName(f, x)}${x.name.trim() ? ' (' + d.name + ')' : ''}`, d.type, s.mv + '"', s.bl + '+', s.bw === '-' ? '-' : s.bw + '+', s.ar + '+', String(s.ini), String(s.wp), String(s.li), String(fighterXp(x)), fighterCost(f, x) + 's']; }),
+    return [`${displayName(f, x)}${x.name.trim() ? ' (' + d.name + ')' : ''}`, x.command ? 'Leader (cmd)' : d.type, s.mv + '"', s.bl + '+', s.bw === '-' ? '-' : s.bw + '+', s.ar + '+', String(s.ini), String(s.wp), String(s.li), String(fighterXp(x)), fighterCost(f, x) + 's']; }),
     { columnStyles: { 0: { fontStyle: 'bold' } } });
   const traitsUsed = new Set();
   xs.forEach(x => {
@@ -950,11 +995,18 @@ function rosterToPdf(k, wb, f) {
     }
     its.filter(i => i.cat === 'armour' || i.cat === 'item').forEach(i => k.para(`${i.name}${i.cat === 'armour' ? ` (Armour ${i.sv}+)` : i.held ? ' (Held item)' : ''}:`, i.text || 'Replaces the Armour value.'));
     if (mut) k.para(`${mut.name} (mutation):`, mut.text);
-    const sk = [...(d.freeSkills || []), ...x.skills];
+    const sk = allSkills(d, x);
     if (sk.length) { k.label('Skills'); sk.forEach(n => k.para(n + ':', skillText(f, n))); }
-    if (x.spells.length && d.lore) { k.label(`Signature spells - ${d.lore}`); x.spells.forEach(n => { const sp = SPELLS[d.lore].find(s => s.name === n); k.para(`${n} (${sp.type}, casting ${sp.cv}+):`, sp.text); }); }
+    if (allSpells(x).length && d.lore) { k.label(`Signature spells - ${d.lore}`); allSpells(x).forEach(n => { const sp = SPELLS[d.lore].find(s => s.name === n); k.para(`${n} (${sp.type}, casting ${sp.cv}+):`, sp.text); }); }
     if (d.lore) k.small(`Also prepares 1 random spell from the ${d.lore} at the start of each battle.`);
     if (d.rules && d.rules.length) { k.label('Special rules'); d.rules.forEach(r => k.para(r.name + ':', r.text)); }
+    if (inCampaign(wb) && ((x.advances || []).length || (x.injuries || []).length || x.rot || x.command)) {
+      k.label('Campaign record');
+      if (x.command) k.para('Assuming command:', 'Counts as the Leader. Burden of Command: earns d6 bonus experience in step 3 of each aftermath.');
+      const st = (x.advances || []).filter(q => q.kind === 'stat'); if (st.length) k.para('Advances:', st.map(q => q.stat === 'bl' || q.stat === 'bw' ? `${STAT_NAMES[q.stat]} improved by 1` : `+1 ${STAT_NAMES[q.stat]}`).join(', ') + '.');
+      (x.injuries || []).forEach(i => k.para(`${INJURIES[i.key].name} (${i.perm ? 'permanent' : 'temporary'}):`, INJURIES[i.key].text));
+      if (x.rot) k.para(`Black Rot ${x.rot}/4:`, 'Killed on gaining the 4th level.');
+    }
   });
   if (traitsUsed.size) {
     k.gap(6); k.h2('Weapon traits in this warband');
@@ -993,6 +1045,231 @@ async function exportCheatPdf() {
   if (!window.jspdf) { toast('The PDF tool is still loading. Try again in a moment.'); return; }
   const k = pdfKit(); cheatToPdf(k); k.finish('Black Death City Playtest 1.10 - Battle cheat sheet');
   await savePdf(k, 'black-death-city-cheat-sheet.pdf');
+}
+// ---------- Campaign mode (Chapter 5 of Playtest 1.10) ----------
+const STAT_NAMES = { mv: 'Move', bl: 'Blade', bw: 'Bow', ar: 'Armour', ini: 'Initiative', wp: 'Willpower', li: 'Life' };
+const INJURIES = {
+  gut: { name: 'Gut Wound', roll: '16', text: 'Halve Life (round up).', apply: s => { s.li = Math.ceil(s.li / 2); return 'li'; } },
+  eye: { name: 'Blinded in One Eye', roll: '21', text: 'Bow value worsens by 1.', apply: s => { if (typeof s.bw === 'number') { s.bw += 1; return 'bw'; } } },
+  arm: { name: 'Fractured Arm', roll: '22', text: 'Blade value worsens by 1.', apply: s => { s.bl += 1; return 'bl'; } },
+  leg: { name: 'Broken Leg', roll: '23', text: 'Halve Move (round up).', apply: s => { if (typeof s.mv === 'number') { s.mv = Math.ceil(s.mv / 2); return 'mv'; } } },
+  head: { name: 'Head Injury', roll: '24', text: 'Halve Initiative (round up).', apply: s => { s.ini = Math.ceil(s.ini / 2); return 'ini'; } },
+  nerves: { name: 'Frayed Nerves', roll: '25', text: 'Halve Willpower (round up).', apply: s => { s.wp = Math.ceil(s.wp / 2); return 'wp'; } },
+};
+const SCENARIOS = ['A Deadly Encounter', 'Glimmers in the Dark', 'No Quarter', 'The Chapel', 'Street of Death', 'The Find'];
+const roll = (n, sides = 6) => Array.from({ length: n }, () => 1 + Math.floor(Math.random() * sides)).reduce((a, b) => a + b, 0);
+
+const inCampaign = wb => !!(wb && wb.campaign);
+const isActive = x => !x.fate;
+function noXp(d) { const k = kwList(d); return k.includes('Thrall') || k.includes('Beast'); }
+function rotImmune(d) { const k = kwList(d); return k.includes('Beast') || k.includes('Demon') || k.includes('Undead'); }
+function injuryTable(d) { const k = kwList(d); return k.includes('Beast') ? 'beast' : k.includes('Demon') ? 'demon' : (k.includes('Skeleton') || k.includes('Thrall')) ? 'thrall' : 'normal'; }
+const startXp = x => (+x.xpBase || 0) + (+x.xpRoll || 0);
+const gainedXp = x => (x.xpLog || []).reduce((a, e) => a + (+e.amount || 0), 0);
+function pendingAdvances(f, x) { const d = fdef(f, x.fid); if (noXp(d)) return 0; return Math.max(0, rankOf(fighterXp(x)) - rankOf(startXp(x)) - (x.advances || []).length); }
+const advSkills = x => (x.advances || []).filter(a => a.kind === 'skill').map(a => a.name);
+const advSpells = x => (x.advances || []).filter(a => a.kind === 'spell').map(a => a.name);
+const allSkills = (d, x) => [...(d.freeSkills || []), ...x.skills, ...advSkills(x)];
+const allSpells = x => [...x.spells, ...advSpells(x)];
+function treasury(wb) { const c = wb.campaign; return c ? (+c.startSilver || 0) + c.ledger.reduce((a, e) => a + (+e.amount || 0), 0) : 0; }
+function strongholdLevel(wb) { const n = wb.campaign ? wb.campaign.battles.length : 0; return n >= 8 ? 3 : n >= 3 ? 2 : 1; }
+const INCOME_DICE = { 1: 3, 2: 4, 3: 5 };
+function ledger(wb, amount, note) { wb.campaign.ledger.push({ id: uid(), n: wb.campaign.battles.length, amount, note }); }
+function isLeaderNow(f, x) { const d = fdef(f, x.fid); return d.type === 'Leader' || !!x.command; }
+function typeNow(f, x) { return x.command ? 'Leader' : fdef(f, x.fid).type; }
+
+// Apply campaign changes to a stat line: advances, then injuries.
+function campaignStats(f, x, s, mod) {
+  (x.advances || []).forEach(a => {
+    if (a.kind !== 'stat') return;
+    if (a.stat === 'bl' || a.stat === 'bw') { if (typeof s[a.stat] === 'number') s[a.stat] = Math.max(2, s[a.stat] - 1); }
+    else if (typeof s[a.stat] === 'number') s[a.stat] += 1;
+    mod[a.stat] = 1;
+  });
+  (x.injuries || []).forEach(i => { const k = INJURIES[i.key] && INJURIES[i.key].apply(s); if (k) mod[k] = 'bad'; });
+}
+
+function startCampaign(wb) {
+  const t = totals(wb);
+  wb.campaign = { startSilver: Math.max(0, BUDGET - t.cost), ledger: [], battles: [], stash: [], fallen: [], notes: '', started: new Date().toISOString().slice(0, 10) };
+  wb.fighters.forEach(x => { x.xpLog = x.xpLog || []; x.advances = x.advances || []; x.injuries = x.injuries || []; x.rot = x.rot || 0; });
+}
+function migrateCampaign(wb) {
+  if (!wb.campaign) return;
+  const c = wb.campaign; ['ledger', 'battles', 'stash', 'fallen'].forEach(k => { if (!Array.isArray(c[k])) c[k] = []; }); if (typeof c.notes !== 'string') c.notes = '';
+  wb.fighters.forEach(x => { x.xpLog = x.xpLog || []; x.advances = x.advances || []; x.injuries = x.injuries || []; x.rot = x.rot || 0; });
+}
+
+// Injury rolls by table. Returns a description and applies it.
+function rollInjury(wb, f, x) {
+  const d = fdef(f, x.fid); const tb = injuryTable(d); const nm = displayName(f, x); const n = wb.campaign.battles.length;
+  if (tb !== 'normal') {
+    const r = roll(1);
+    if (tb === 'beast') return r <= 2 ? { r, text: 'Killed', killed: true } : { r, text: 'Full Recovery' };
+    if (tb === 'thrall') return r === 1 ? { r, text: 'Laid to Rest (killed)', killed: true } : { r, text: 'Full Recovery' };
+    if (r === 1) return { r, text: 'Banished (killed)', killed: true };
+    if (r <= 3) { x.missNext = true; return { r, text: 'Fractured Essence: misses the next battle' }; }
+    return { r, text: 'Unharmed' };
+  }
+  const r = roll(1) * 10 + roll(1);
+  if (r <= 15) return { r, text: 'Killed', killed: true };
+  const map = { 16: 'gut', 21: 'eye', 22: 'arm', 23: 'leg', 24: 'head', 25: 'nerves' };
+  if (map[r]) {
+    const key = map[r];
+    if ((x.injuries || []).some(i => i.key === key)) return { r, text: `${INJURIES[key].name} again, which counts as Full Recovery` };
+    const perm = roll(1) === 1; x.injuries.push({ id: uid(), key, perm, n });
+    return { r, text: `${INJURIES[key].name} (${perm ? 'permanent' : 'temporary'}): ${INJURIES[key].text}` };
+  }
+  if (r === 26) return addRot(f, x, 2, r, 'Chronic Black Rot: +2 Black Rot');
+  if (r <= 46) return addRot(f, x, 1, r, 'Black Rot: +1 Black Rot');
+  if (r <= 65) return { r, text: 'Full Recovery' };
+  x.xpLog.push({ id: uid(), n, amount: 10, note: 'Heroic Escape' });
+  return { r, text: 'Heroic Escape: full recovery and +10 XP' };
+}
+function addRot(f, x, n, r, text) {
+  const d = fdef(f, x.fid);
+  if (rotImmune(d)) return { r, text: text + ' (immune, no effect)' };
+  x.rot = Math.min(4, (x.rot || 0) + n);
+  if (x.rot >= 4) return { r, text: text + '. 4th level: succumbs to the plague and is killed', killed: true };
+  return { r, text };
+}
+
+function removeFighter(wb, f, x, fate) {
+  const d = fdef(f, x.fid); const fixed = new Set(d.fixed || []);
+  if (fate === 'retired') SLOTS.forEach(([k]) => { const id = x.gear[k]; if (id && !fixed.has(id)) wb.campaign.stash.push({ id: uid(), item: id }); });
+  const copyX = JSON.parse(JSON.stringify(x)); copyX.fate = fate; copyX.after = wb.campaign.battles.length;
+  wb.campaign.fallen.push(copyX);
+  wb.fighters = wb.fighters.filter(y => y.uid !== x.uid);
+  if (isLeaderNow(f, x)) wb.fighters.forEach(y => { if (y.command) y.command = false; });
+}
+
+// ---------- Views ----------
+function xpButtons(x, compact) {
+  return `<div class="row xpb">
+    <button class="btn small" data-act="xp-add" data-v="${x.uid}" data-k="d6" title="Took part in the battle">${compact ? '+d6' : '+d6 took part'}</button>
+    <button class="btn small" data-act="xp-add" data-v="${x.uid}" data-k="lost" title="Your warband lost">${compact ? '+d6 lost' : '+d6 lessons learned'}</button>
+    <button class="btn small" data-act="xp-add" data-v="${x.uid}" data-k="5" title="Took an enemy down">+5 take-down</button>
+  </div>`;
+}
+function viewCampaign(wb, f) {
+  if (!inCampaign(wb)) return viewCampaignStart(wb, f);
+  const c = wb.campaign; const lvl = strongholdLevel(wb); const o = f.origins[wb.origin];
+  const active = wb.fighters; const order = TYPES.map(ty => ty.key);
+  const xs = [...active].sort((a, b) => order.indexOf(typeNow(f, a)) - order.indexOf(typeNow(f, b)));
+  const lastN = c.battles.length;
+  const res = ui.injuryResult || {};
+  const rows = xs.map(x => {
+    const d = fdef(f, x.fid); const pend = pendingAdvances(f, x); const xp = fighterXp(x);
+    const inj = (x.injuries || []).map(i => `${INJURIES[i.key].name}${i.perm ? ' (perm.)' : ''}`).join(', ');
+    return `<li class="cf">
+      <div class="cf-h"><button class="linkish" data-act="sel" data-v="${x.uid}"><b>${esc(displayName(f, x))}</b></button>
+        <span class="hint">${esc(x.command ? 'Champion, in command' : d.type)}${noXp(d) ? '' : ` · ${xp} XP · Rank ${rankOf(xp)}`}</span>
+        ${pend ? `<button class="pill go" data-act="sel" data-v="${x.uid}">${pend} advance${pend > 1 ? 's' : ''} to roll</button>` : ''}
+        ${x.missNext ? '<span class="pill warnp">Misses next battle</span>' : ''}
+        ${!rotImmune(d) && x.rot ? `<span class="pill ${x.rot >= 3 ? 'badp' : 'warnp'}">Black Rot ${x.rot}/4</span>` : ''}
+        ${inj ? `<span class="pill badp">${esc(inj)}</span>` : ''}</div>
+      <div class="cf-a">${noXp(d) ? '<span class="hint">Thralls and Beasts never earn experience.</span>' : xpButtons(x, true)}
+        <button class="btn small" data-act="inj-roll" data-v="${x.uid}">Injury roll</button></div>
+      ${res[x.uid] ? `<div class="result ${res[x.uid].killed ? 'bad' : ''}">Rolled ${res[x.uid].r}: ${esc(res[x.uid].text)}${res[x.uid].killed ? ` <button class="btn small danger" data-act="kill" data-v="${x.uid}">Mark as killed</button>` : ''}</div>` : ''}
+    </li>`;
+  }).join('');
+  const lastBattle = c.battles[c.battles.length - 1];
+  const after = `<section class="panel stack"><h3 class="dh">Aftermath${lastBattle ? ` <small>after battle ${lastN}${lastBattle.opponent ? ' vs ' + esc(lastBattle.opponent) : ''}</small>` : ''}</h3>
+    <ol class="steps">
+      <li><b>Holdings and stronghold.</b> Note any holdings in Campaign notes.${lvl > 1 ? ` Stronghold is level ${lvl}: ${lvl - 1} upgrade${lvl > 2 ? 's' : ''} (choose them on the Build tab).` : ''}</li>
+      <li><b>Injuries.</b> Tap <b>Injury roll</b> for each fighter taken down. It uses the right table for Beasts, Thralls and Demons.</li>
+      <li><b>Experience.</b> +d6 for each fighter who took part, +d6 more if you lost, +5 per enemy taken down. Bonus XP from scenarios goes in each fighter's record. ${o ? '' : ''}</li>
+      <li><b>Explore the City.</b> Roll on the Exploration table; record finds in the treasury or notes.</li>
+      <li><b>Income.</b> Roll income below and add treasure (d3x5 silver each).</li>
+      <li><b>Downtime.</b> Recover from injuries, recruit on the Build tab, sell from the stash, leech Black Rot.</li>
+    </ol>
+    <div class="row"><button class="btn" data-act="xp-all" data-k="d6">Everyone who took part: +d6</button><button class="btn" data-act="xp-all" data-k="lost">We lost: everyone +d6</button><button class="btn" data-act="recup-all">Recovery rolls (5-6)</button></div>
+    <p class="hint" style="margin:0">The "everyone" buttons skip Thralls, Beasts and fighters marked as missing the battle.</p>
+    <ul class="cflist">${rows || '<li class="empty">No fighters.</li>'}</ul></section>`;
+  const income = `<section class="panel stack"><h3 class="dh">Treasury <small>${esc(o ? o.stronghold : 'Stronghold')} · level ${lvl}</small></h3>
+    <div class="bigsilver">${treasury(wb)} <span>silver</span></div>
+    <div class="row"><button class="btn primary" data-act="income">Roll income (${INCOME_DICE[lvl]}d6x5)</button>
+      <label class="row" style="gap:6px" for="tr-n"><span class="hint">Treasure tokens</span><input type="number" id="tr-n" min="1" max="20" value="${ui.trN || 1}" data-act="trn" style="width:70px"></label>
+      <button class="btn" data-act="treasure">Roll treasure (d3x5 each)</button></div>
+    <div class="row ledger-add"><input type="number" id="lg-amt" placeholder="Silver (use - to spend)" value="${esc(ui.lgAmt ?? '')}" data-act="lgamt" style="max-width:190px"><input type="text" id="lg-note" placeholder="What for?" value="${esc(ui.lgNote ?? '')}" data-act="lgnote" style="flex:1;min-width:140px"><button class="btn" id="lg-add" data-act="lg-add">Add</button></div>
+    <details class="ledger" ${ui.ledgerOpen ? 'open' : ''}><summary>History (${c.ledger.length} entries)</summary>
+      <ul class="lgl">${[...c.ledger].reverse().map(e => `<li><span class="amt ${e.amount < 0 ? 'neg' : 'pos'}">${e.amount > 0 ? '+' : ''}${e.amount}</span><span>${esc(e.note || '')}<span class="hint"> · after battle ${e.n}</span></span><button class="x" data-act="lg-del" data-v="${e.id}" aria-label="Delete entry">✕</button></li>`).join('') || '<li class="hint">Nothing yet.</li>'}
+      <li class="hint">Started with ${c.startSilver} silver left over from recruiting.</li></ul></details></section>`;
+  const battles = `<section class="panel stack"><h3 class="dh">Battles <small>${lastN} fought · stronghold level ${lvl}</small></h3>
+    <div class="bform"><input type="text" id="b-opp" placeholder="Opponent" value="${esc(ui.bOpp ?? '')}" data-act="bopp">
+      <select id="b-scn" data-act="bscn"><option value="">Scenario</option>${SCENARIOS.map((s, i) => `<option value="${i}" ${String(ui.bScn) === String(i) ? 'selected' : ''}>${i + 1}. ${s}</option>`).join('')}</select>
+      <select id="b-res" data-act="bres"><option value="won" ${ui.bRes === 'won' ? 'selected' : ''}>Won</option><option value="lost" ${ui.bRes === 'lost' ? 'selected' : ''}>Lost</option><option value="draw" ${ui.bRes === 'draw' ? 'selected' : ''}>Draw</option></select>
+      <button class="btn primary" id="b-add" data-act="battle-add">Log battle</button></div>
+    <p class="hint" style="margin:0">Stronghold reaches level 2 after 3 battles and level 3 after 8, each adding an upgrade slot.</p>
+    ${c.battles.length ? `<ul class="lgl">${[...c.battles].reverse().map(b => `<li><span class="amt ${b.result === 'won' ? 'pos' : b.result === 'lost' ? 'neg' : ''}">${b.n}</span><span><b>${b.result === 'won' ? 'Won' : b.result === 'lost' ? 'Lost' : 'Draw'}</b>${b.opponent ? ' vs ' + esc(b.opponent) : ''}${b.scenario !== '' && b.scenario != null ? ' · ' + esc(SCENARIOS[b.scenario]) : ''}</span><button class="x" data-act="b-del" data-v="${b.id}" aria-label="Delete battle">✕</button></li>`).join('')}</ul>` : ''}</section>`;
+  const stash = `<section class="panel stack"><h3 class="dh">Stash <small>${c.stash.length} item${c.stash.length === 1 ? '' : 's'}</small></h3>
+    <p class="hint" style="margin:0">Wargear nobody is carrying. Equip it from a fighter's wargear slots on the Build tab at no cost. Unequipped wargear lands here.</p>
+    ${c.stash.length ? `<ul class="lgl">${c.stash.map(s => { const it = f.items[s.item]; return `<li><span class="amt">${Math.floor(it.cost / 2)}s</span><span><b>${esc(it.name)}</b> <span class="hint">worth ${it.cost}s</span></span><button class="btn small" data-act="sell" data-v="${s.id}">Sell</button><button class="x" data-act="st-del" data-v="${s.id}" aria-label="Discard">✕</button></li>`; }).join('')}</ul>` : ''}
+    <div class="row"><select id="st-item" data-act="stitem" style="flex:1;min-width:160px">${Object.entries(f.items).filter(([, it]) => !it.natural && !it.noBuy).sort((a, b) => a[1].name.localeCompare(b[1].name)).map(([id, it]) => `<option value="${id}" ${ui.stItem === id ? 'selected' : ''}>${esc(it.name)} · ${it.cost}s</option>`).join('')}</select>
+      <button class="btn" data-act="st-buy">Buy</button><button class="btn" data-act="st-find">Add free (found)</button></div>
+    <p class="hint" style="margin:0">Selling gives half the cost, rounded down.</p></section>`;
+  const notes = `<section class="panel stack"><h3 class="dh">Campaign notes</h3><label class="lbl" for="c-notes">Holdings, relics, curiosities, tonics and anything else to remember</label><textarea id="c-notes" data-act="cnotes" class="notes">${esc(c.notes)}</textarea></section>`;
+  const fallen = c.fallen.length ? `<section class="panel stack"><h3 class="dh">Fallen and retired</h3><ul class="lgl">${c.fallen.map(x => { const d = fdef(f, x.fid); return `<li><span class="amt ${x.fate === 'killed' ? 'neg' : ''}">${x.fate === 'killed' ? '†' : 'R'}</span><span><b>${esc(displayName(f, x))}</b> <span class="hint">${esc(d ? d.name : '')} · ${x.fate === 'killed' ? 'killed' : 'retired'} after battle ${x.after} · ${fighterXp(x)} XP</span></span></li>`; }).join('')}</ul></section>` : '';
+  const end = `<section class="panel row" style="justify-content:space-between"><span class="hint">Started ${esc(c.started || '')}. Ending the campaign keeps the warband but deletes its campaign record.</span>
+    ${ui.confirm === 'endc' ? `<span class="confirm">Delete the campaign record? <button class="btn small danger" data-act="endc-yes">Delete</button><button class="btn small" data-act="del-no">Keep</button></span>` : `<button class="btn small danger" data-act="endc">End campaign</button>`}</section>`;
+  return `<div class="cgrid"><div class="stack">${after}</div><div class="stack">${income}${battles}${stash}${notes}${fallen}${end}</div></div>`;
+}
+function viewCampaignStart(wb, f) {
+  const chk = check(wb); const t = totals(wb);
+  return `<section class="panel stack" style="max-width:760px"><h2 class="dh2">Start the campaign</h2>
+    <p>Campaign mode tracks your warband between battles: silver, battles and stronghold level, experience and advances, injuries, Black Rot, the stash, and who has fallen.</p>
+    <ul class="rules"><li>Your treasury starts with the <b>${Math.max(0, t.left)} silver</b> left over from recruiting.</li>
+      <li>From then on, recruiting and buying wargear is paid from the treasury, and removed wargear goes to the stash.</li>
+      <li>You can keep editing everything; the treasury history can be corrected at any time.</li></ul>
+    ${chk.errors ? `<div class="issue error"><span class="tag">Fix</span><span>The warband still has ${chk.errors} rules problem${chk.errors > 1 ? 's' : ''}. You can start anyway, but sort them out first if you can.</span></div>` : ''}
+    <div class="row"><button class="btn primary" id="start-c" data-act="startc">Start campaign</button></div></section>`;
+}
+
+// Campaign section on a fighter's sheet
+function fighterCampaignHtml(wb, f, x) {
+  if (!inCampaign(wb)) return '';
+  const d = fdef(f, x.fid); const pend = pendingAdvances(f, x); const n = wb.campaign.battles.length;
+  const xpPart = noXp(d) ? `<p class="hint">Thralls and Beasts never earn experience or gain ranks.</p>` : `
+    <div class="xp"><span>Starting ${startXp(x)}</span><span>+ earned ${gainedXp(x)}</span><span class="tot">${fighterXp(x)} XP · Rank ${rankOf(fighterXp(x))}</span></div>
+    ${xpButtons(x, false)}
+    <div class="row"><input type="number" id="xp-amt" placeholder="Bonus XP" value="${esc(ui.xpAmt ?? '')}" data-act="xpamt" style="max-width:130px"><input type="text" id="xp-note" placeholder="Reason (optional)" value="${esc(ui.xpNote ?? '')}" data-act="xpnote" style="flex:1;min-width:140px"><button class="btn" id="xp-add-c" data-act="xp-custom">Add XP</button></div>
+    ${(x.xpLog || []).length ? `<details class="ledger"><summary>Experience history (${x.xpLog.length})</summary><ul class="lgl">${[...x.xpLog].reverse().map(e => `<li><span class="amt pos">+${e.amount}</span><span>${esc(e.note || '')}<span class="hint"> · after battle ${e.n}</span></span><button class="x" data-act="xp-del" data-v="${e.id}" aria-label="Delete">✕</button></li>`).join('')}</ul></details>` : ''}`;
+  // Advances
+  const ar = ui.advRoll && ui.advRoll.uid === x.uid ? ui.advRoll.r : null;
+  const allow = r => ar == null || (r === 1 && ar === 1) || (r === 2 && ar === 2) || (r === 34 && (ar === 3 || ar === 4)) || (r === 5 && ar === 5) || ar === 6;
+  const statBtn = (stat, label, r, extra) => `<button class="btn small ${ar != null && allow(r) ? 'primary' : ''}" data-act="adv-stat" data-v="${stat}" ${allow(r) && extra !== false ? '' : 'disabled'}>${label}</button>`;
+  const lore = d.lore ? SPELLS[d.lore] : null; const known = allSpells(x);
+  const takenSkills = new Set(); wb.fighters.forEach(y => allSkills(fdef(f, y.fid), y).forEach(s => takenSkills.add(s)));
+  const picking = ui.advPick && ui.advPick.uid === x.uid ? ui.advPick.kind : null;
+  const advPart = noXp(d) ? '' : `
+    <h4 class="sub-h">Advances <span>${pend ? `<span class="pill go">${pend} to roll</span>` : 'none waiting'}</span></h4>
+    ${pend ? `<div class="row"><button class="btn primary" data-act="adv-roll">Roll advancement (d6)</button>${ar != null ? `<span class="result">Rolled ${ar}: ${['', 'Wits: +1 Initiative or Willpower', 'Speed: +1 Move', 'Constitution: +1 Life', 'Constitution: +1 Life', 'Combat Prowess: Blade or Bow +1', 'Fated: a skill, a spell, or any other result'][ar]}</span>` : '<span class="hint">or pick the result you rolled yourself</span>'}</div>
+      <div class="row advb">${statBtn('ini', '+1 Initiative', 1)}${statBtn('wp', '+1 Willpower', 1)}${statBtn('mv', '+1 Move', 2, typeof d.s.mv === 'number')}${statBtn('li', '+1 Life', 34)}${statBtn('bl', 'Blade +1', 5)}${statBtn('bw', 'Bow +1', 5, d.s.bw !== '-')}
+        <button class="btn small ${ar === 6 ? 'primary' : ''}" data-act="adv-pick" data-v="skill" ${ar == null || ar === 6 ? '' : 'disabled'}>New skill</button>
+        ${lore ? `<button class="btn small ${ar === 6 ? 'primary' : ''}" data-act="adv-pick" data-v="spell" ${ar == null || ar === 6 ? '' : 'disabled'}>New signature spell</button>` : ''}</div>` : ''}
+    ${picking === 'skill' ? `<div class="picks">${eligibleTables(f, d).map(tb => `<div><h4>${esc(tb.name)} <span>(${esc(tb.who)})</span></h4>${tb.skills.filter(sk => !(sk[2] && sk[2].champOnly && d.type !== 'Champion')).map(([nm, txt]) => { const tk = takenSkills.has(nm); return `<button class="opt optbtn ${tk ? 'off' : ''}" data-act="adv-skill" data-v="${esc(nm)}" ${tk ? 'disabled' : ''}><b>${esc(nm)}${tk ? ' <span class="hint">· already in the warband</span>' : ''}</b><span class="t">${esc(txt)}</span></button>`; }).join('')}</div>`).join('')}</div>` : ''}
+    ${picking === 'spell' && lore ? `<div>${lore.filter(sp => !known.includes(sp.name)).map(sp => `<button class="opt optbtn" data-act="adv-spell" data-v="${esc(sp.name)}"><b>${sp.n}. ${esc(sp.name)} <span class="hint">· ${esc(sp.type)} · ${sp.cv}+</span></b><span class="t">${esc(sp.text)}</span></button>`).join('')}</div>` : ''}
+    ${(x.advances || []).length ? `<ul class="lgl">${x.advances.map(a => `<li><span class="amt pos">↑</span><span>${a.kind === 'stat' ? (a.stat === 'bl' || a.stat === 'bw' ? `${STAT_NAMES[a.stat]} improved by 1` : `+1 ${STAT_NAMES[a.stat]}`) : a.kind === 'skill' ? `Skill: ${esc(a.name)}` : `Signature spell: ${esc(a.name)}`}<span class="hint"> · after battle ${a.n}</span></span><button class="x" data-act="adv-del" data-v="${a.id}" aria-label="Remove advance">✕</button></li>`).join('')}</ul>` : ''}`;
+  // Injuries
+  const res = (ui.injuryResult || {})[x.uid];
+  const injPart = `
+    <h4 class="sub-h">Injuries <span>${injuryTable(d) === 'normal' ? 'd66 table' : injuryTable(d) === 'beast' ? 'Beast table' : injuryTable(d) === 'demon' ? 'Demon table' : 'Skeleton and Thrall table'}</span></h4>
+    <div class="row"><button class="btn" data-act="inj-roll" data-v="${x.uid}">Injury roll</button>
+      ${injuryTable(d) === 'normal' ? `<select id="inj-add" data-act="injsel" style="max-width:220px"><option value="">Add an injury yourself…</option>${Object.entries(INJURIES).map(([k, i]) => `<option value="${k}">${i.roll} ${esc(i.name)}</option>`).join('')}</select>` : ''}
+      ${injuryTable(d) === 'demon' ? `<label class="row" style="gap:6px"><input type="checkbox" id="miss-next" data-act="missnext" ${x.missNext ? 'checked' : ''} style="width:20px;height:20px">Misses next battle</label>` : ''}</div>
+    ${res ? `<div class="result ${res.killed ? 'bad' : ''}">Rolled ${res.r}: ${esc(res.text)}${res.killed ? ` <button class="btn small danger" data-act="kill" data-v="${x.uid}">Mark as killed</button>` : ''}</div>` : ''}
+    ${(x.injuries || []).length ? `<ul class="lgl">${x.injuries.map(i => `<li><span class="amt neg">${INJURIES[i.key].roll}</span><span><b>${esc(INJURIES[i.key].name)}</b> <span class="hint">${i.perm ? 'permanent' : 'temporary'} · ${esc(INJURIES[i.key].text)}</span></span>
+      <button class="btn small" data-act="inj-perm" data-v="${i.id}">${i.perm ? 'Make temporary' : 'Make permanent'}</button>${i.perm ? '' : `<button class="btn small" data-act="inj-recup" data-v="${i.id}" ${i.n >= n && n > 0 ? 'title="Gained this aftermath: no recovery roll yet"' : ''}>Recovery roll</button>`}<button class="x" data-act="inj-del" data-v="${i.id}" aria-label="Remove injury">✕</button></li>`).join('')}</ul>` : ''}
+    ${rotImmune(d) ? '' : `<div class="row rot"><span><b>Black Rot</b> ${x.rot || 0}/4</span><button class="btn small" data-act="rot" data-v="-1" ${x.rot ? '' : 'disabled'}>−1</button><button class="btn small" data-act="rot" data-v="1">+1</button><button class="btn small" data-act="leech">Leech (4+ removes 1)</button>${(x.rot || 0) >= 3 ? '<span class="pill badp">One more level kills</span>' : ''}</div>`}`;
+  // Command
+  const hasLeader = wb.fighters.some(y => fdef(f, y.fid).type === 'Leader');
+  const cmd = d.type === 'Champion' && (!hasLeader || x.command) ? `<div class="row note"><span>${x.command ? '<b>Assuming command.</b> Counts as the Leader. Burden of Command: earns d6 bonus XP in step 3 of each aftermath.' : 'Your warband has no Leader. A Champion can assume command.'}</span><button class="btn small ${x.command ? '' : 'primary'}" data-act="command">${x.command ? 'Step down' : 'Assume command'}</button></div>` : '';
+  const fate = ui.confirm === 'fate-' + x.uid ? `<span class="confirm">Retire ${esc(displayName(f, x))}? Wargear goes to the stash. <button class="btn small danger" data-act="retire-yes">Retire</button><button class="btn small" data-act="del-no">Keep</button></span>`
+    : ui.confirm === 'kill-' + x.uid ? `<span class="confirm">Mark ${esc(displayName(f, x))} as killed? Their wargear is lost. <button class="btn small danger" data-act="kill-yes">Killed</button><button class="btn small" data-act="del-no">Keep</button></span>`
+    : `<button class="btn danger" data-act="kill" data-v="${x.uid}">Killed</button><button class="btn" data-act="retire">Retire</button>`;
+  return `<section class="sec panel stack campaign-sec"><h3>Campaign record <small>after battle ${n}</small></h3>
+    ${cmd}${xpPart}${advPart}${injPart}
+    <div class="row">${fate}</div></section>`;
 }
 // ---------- Helpers ----------
 const BUDGET = 1000, MAX_FIGHTERS = 15;
@@ -1034,6 +1311,7 @@ function load() {
 function migrate(wb) {
   const f = fac(wb.faction); if (!f) return wb;
   if (!Array.isArray(wb.upgrades)) wb.upgrades = [];
+  migrateCampaign(wb);
   wb.fighters = wb.fighters.filter(x => fdef(f, x.fid));
   wb.fighters.forEach(x => {
     const d = fdef(f, x.fid);
@@ -1086,10 +1364,11 @@ function fighterCost(f, x, wb = WB()) {
   if (x.opt && d.options) { const o = d.options.list.find(o => o.id === x.opt); if (o) c += o.cost; }
   return c;
 }
-const fighterXp = x => (+x.xpBase || 0) + (+x.xpRoll || 0);
+const fighterXp = x => (+x.xpBase || 0) + (+x.xpRoll || 0) + (x.xpLog || []).reduce((a, e) => a + (+e.amount || 0), 0);
 function effStats(f, x) {
   const d = fdef(f, x.fid); const s = { ...d.s }; const mod = {};
   if (x.opt && d.options) { const o = d.options.list.find(o => o.id === x.opt); if (o && o.set) Object.entries(o.set).forEach(([k, v]) => { s[k] = v; mod[k] = 1; }); }
+  campaignStats(f, x, s, mod);
   const its = gearItems(f, x);
   const arm = its.find(i => i.cat === 'armour');
   if (arm) { if (arm.sv < s.ar) { s.ar = arm.sv; mod.ar = 1; } if (arm.moveMod && typeof s.mv === 'number') { s.mv += arm.moveMod; mod.mv = 1; } }
@@ -1123,7 +1402,7 @@ function totals(wb) {
   const f = fac(wb.faction);
   const cost = wb.fighters.reduce((a, x) => a + fighterCost(f, x, wb), 0);
   const xp = wb.fighters.reduce((a, x) => a + fighterXp(x), 0);
-  return { cost, left: BUDGET - cost, rating: cost + xp, count: wb.fighters.length };
+  return { cost, left: inCampaign(wb) ? treasury(wb) : BUDGET - cost, rating: cost + xp, count: wb.fighters.length };
 }
 
 // ---------- Rules check ----------
@@ -1131,21 +1410,22 @@ function check(wb) {
   const f = fac(wb.faction); const out = []; const per = {};
   const push = (level, msg, x) => { out.push({ level, msg, uid: x && x.uid }); if (x) (per[x.uid] = per[x.uid] || []).push({ level, msg }); };
   const t = totals(wb);
-  if (t.left < 0) push('error', `Over budget by ${-t.left} silver. You start with ${BUDGET}.`);
+  if (t.left < 0) push('error', inCampaign(wb) ? `Treasury is ${t.left} silver. Sell wargear or correct the treasury history.` : `Over budget by ${-t.left} silver. You start with ${BUDGET}.`);
   if (t.count > MAX_FIGHTERS) push('error', `${t.count} fighters. A warband can never exceed ${MAX_FIGHTERS}.`);
-  if ((wb.upgrades || []).length > 2) push('error', `${wb.upgrades.length} stronghold upgrades chosen. A stronghold gets at most 2 (at levels 2 and 3).`);
+  const upCap = inCampaign(wb) ? strongholdLevel(wb) - 1 : 2;
+  if ((wb.upgrades || []).length > upCap) push(inCampaign(wb) ? 'warn' : 'error', inCampaign(wb) ? `${wb.upgrades.length} stronghold upgrades chosen, but your level ${strongholdLevel(wb)} stronghold allows ${upCap}.` : `${wb.upgrades.length} stronghold upgrades chosen. A stronghold gets at most 2 (at levels 2 and 3).`);
   const plateCap = upgradeLimit(f, wb, 'henchPlate')[0];
   if (plateCap) { const n = wb.fighters.filter(x => fdef(f, x.fid).type === 'Henchman' && SLOTS.some(([k]) => x.gear[k] === 'full_plate')).length; if (n > plateCap) push('error', `Armourer: only ${plateCap} Henchmen can wear Full-plate (you have ${n}).`); }
   const byType = {}; TYPES.forEach(ty => byType[ty.key] = 0);
-  wb.fighters.forEach(x => { const d = fdef(f, x.fid); const c = countsAs(f, wb, d); if (c) byType[c]++; });
-  if (byType.Leader === 0) push('error', 'Recruit 1 Leader.');
+  wb.fighters.forEach(x => { const d = fdef(f, x.fid); const c = countsAs(f, wb, d) && typeNow(f, x); if (c) byType[c]++; });
+  if (byType.Leader === 0) push('error', inCampaign(wb) && byType.Champion ? 'No Leader: pick a Champion to assume command (open the Champion), or recruit a new Leader.' : 'Recruit 1 Leader.');
   if (byType.Leader > 1) push('error', `Only 1 Leader allowed (you have ${byType.Leader}).`);
   if (byType.Champion > 3) push('error', `Up to 3 Champions allowed (you have ${byType.Champion}).`);
   if (byType.Henchman < 5) push('warn', `Recruit at least 5 Henchmen (you have ${byType.Henchman}).`);
   if (byType.Brute > 2) push('error', `Up to 2 Brutes allowed (you have ${byType.Brute}).`);
   if (byType.Beast > 3) push('error', `Up to 3 Beasts allowed (you have ${byType.Beast}).`);
   const origin = f.origins[wb.origin];
-  if (origin) { const ld = wb.fighters.find(x => fdef(f, x.fid).type === 'Leader'); if (ld && ld.fid !== origin.leader) push('error', `${origin.name} must be led by a ${fdef(f, origin.leader).name}.`, ld); }
+  if (origin) { const ld = wb.fighters.find(x => fdef(f, x.fid).type === 'Leader' && !x.command); if (ld && ld.fid !== origin.leader) push('error', `${origin.name} must be led by a ${fdef(f, origin.leader).name}.`, ld); }
   f.fighters.forEach(d => { const lim = fighterLimit(f, wb, d); if (!lim) return; const n = wb.fighters.filter(x => x.fid === d.id).length; if (n > lim) push('error', `${d.name}: limit 0-${lim}, you have ${n}.`); });
   // Rare wargear across the warband
   const rareCount = {};
@@ -1153,7 +1433,7 @@ function check(wb) {
   Object.entries(rareCount).forEach(([id, n]) => { const it = f.items[id]; if (n > rareOf(it)) push('error', `${it.name} is Rare 0-${rareOf(it)}: ${n} fighters have one.`); });
   // Skills: no duplicates
   const skillOwners = {};
-  wb.fighters.forEach(x => { const d = fdef(f, x.fid); [...(d.freeSkills || []), ...x.skills].forEach(s => (skillOwners[s] = skillOwners[s] || []).push(x)); });
+  wb.fighters.forEach(x => { const d = fdef(f, x.fid); allSkills(d, x).forEach(s => (skillOwners[s] = skillOwners[s] || []).push(x)); });
   Object.entries(skillOwners).forEach(([s, xs]) => { if (xs.length > 1) push('error', `Skill "${s}" is on ${xs.length} fighters. Each skill can only be on one fighter.`, xs[1]); });
   // Per fighter
   wb.fighters.forEach(x => {
@@ -1171,6 +1451,8 @@ function check(wb) {
     const dupItem = SLOTS.map(([k]) => x.gear[k]).filter(Boolean); const seen = new Set();
     dupItem.forEach(id => { const it = f.items[id]; if (seen.has(id) && it.cat === 'item') push('warn', `${nm}: carries two ${it.name}s.`, x); seen.add(id); });
     if (d.skills && x.skills.length < d.skills) push('warn', `${nm}: pick ${d.skills - x.skills.length} more skill${d.skills - x.skills.length > 1 ? 's' : ''}.`, x);
+    if (inCampaign(wb) && pendingAdvances(f, x)) push('warn', `${nm}: ${pendingAdvances(f, x)} advance${pendingAdvances(f, x) > 1 ? 's' : ''} to roll.`, x);
+    if (inCampaign(wb) && !rotImmune(d) && (x.rot || 0) >= 4) push('error', `${nm}: 4 levels of Black Rot. The fighter is killed.`, x);
     if (d.sig && x.spells.length < d.sig) push('warn', `${nm}: pick ${d.sig - x.spells.length} more signature spell${d.sig - x.spells.length > 1 ? 's' : ''}.`, x);
   });
   return { list: out, per, errors: out.filter(i => i.level === 'error').length };
@@ -1185,8 +1467,8 @@ function render() {
   <header class="bar"><div class="wrap">
     <div class="brand">Black Death City<small>${esc(wb.name || 'Unnamed warband')} · ${esc(f.name)}</small></div>
     <div class="tally">
-      <div class="tal ${t.left < 0 ? 'bad' : ''}"><b>${t.left}</b><span><span class="lg">Silver left</span><span class="sm">Silver</span></span></div>
-      <div class="tal"><b>${t.cost}</b><span>Spent</span></div>
+      <div class="tal ${t.left < 0 ? 'bad' : ''}"><b>${t.left}</b><span>${inCampaign(wb) ? 'Treasury' : '<span class="lg">Silver left</span><span class="sm">Silver</span>'}</span></div>
+      ${inCampaign(wb) ? `<div class="tal"><b>${wb.campaign.battles.length}</b><span>Battles</span></div>` : `<div class="tal"><b>${t.cost}</b><span>Spent</span></div>`}
       <div class="tal"><b>${t.rating}</b><span>Rating</span></div>
       <div class="tal ${t.count > MAX_FIGHTERS ? 'bad' : ''}"><b>${t.count}/${MAX_FIGHTERS}</b><span>Fighters</span></div>
     </div>
@@ -1194,9 +1476,9 @@ function render() {
   </div>
   </header>
   <nav class="wrap"><div class="tabs" role="tablist">
-    ${[['build', 'Build', 'Build'], ['sheet', 'Roster sheet', 'Roster'], ['cheat', 'Cheat sheet', 'Cheat sheet'], ['bands', 'My warbands', 'Warbands']].map(([k, l, sh]) => `<button class="tab" role="tab" id="tab-${k}" aria-selected="${ui.tab === k}" data-act="tab" data-v="${k}"><span class="lg">${l}</span><span class="sm">${sh}</span></button>`).join('')}
+    ${[['build', 'Build', 'Build'], ['campaign', 'Campaign', 'Campaign'], ['sheet', 'Roster sheet', 'Roster'], ['cheat', 'Cheat sheet', 'Rules'], ['bands', 'My warbands', 'Bands']].map(([k, l, sh]) => `<button class="tab" role="tab" id="tab-${k}" aria-selected="${ui.tab === k}" data-act="tab" data-v="${k}"><span class="lg">${l}</span><span class="sm">${sh}</span></button>`).join('')}
   </div></nav>
-  <main class="wrap">${ui.tab === 'build' ? viewBuild(wb, f, chk) : ui.tab === 'sheet' ? viewSheet(wb, f, chk) : ui.tab === 'cheat' ? viewCheat() : viewBands()}</main>`;
+  <main class="wrap">${ui.tab === 'build' ? viewBuild(wb, f, chk) : ui.tab === 'campaign' ? viewCampaign(wb, f) : ui.tab === 'sheet' ? viewSheet(wb, f, chk) : ui.tab === 'cheat' ? viewCheat() : viewBands()}</main>`;
   const bar = app.querySelector('.bar'); if (bar) document.documentElement.style.setProperty('--barh', bar.offsetHeight + 'px');
   if (active) { const el = document.getElementById(active); if (el) el.focus({ preventScroll: true }); }
   window.scrollTo(0, sy);
@@ -1211,14 +1493,14 @@ function viewBuild(wb, f, chk) {
   const o = f.origins[wb.origin];
   const banner = wb.example ? `<div class="banner"><span>This is an example warband so you can see how it works.</span><button class="btn small" data-act="tab" data-v="bands">Start your own</button></div>` : '';
   const groups = TYPES.map(ty => {
-    const xs = wb.fighters.filter(x => fdef(f, x.fid).type === ty.key);
+    const xs = wb.fighters.filter(x => typeNow(f, x) === ty.key);
     const counted = xs.filter(x => countsAs(f, wb, fdef(f, x.fid))).length;
     const lim = ty.key === 'Henchman' ? `${counted} · need 5+` : `${counted}/${ty.max}`;
     const bad = (ty.max && counted > ty.max) || (ty.key === 'Henchman' && counted < 5) || (ty.key === 'Leader' && counted !== 1);
     return `<section class="group"><h3>${ty.plural}<span class="cnt ${bad ? 'bad' : ''}">${lim}</span></h3>
       ${xs.length ? `<ul class="fl">${xs.map(x => { const d = fdef(f, x.fid); const iss = chk.per[x.uid]; const gear = gearItems(f, x).map(i => i.name).join(', ');
         return `<li><button class="fbtn" id="f-${x.uid}" data-act="sel" data-v="${x.uid}" aria-current="${ui.sel === x.uid && !ui.recruit}">
-          <span class="nm">${iss ? '<span class="flag" title="Needs attention">! </span>' : ''}${esc(displayName(f, x))}</span>
+          <span class="nm">${iss ? '<span class="flag" title="Needs attention">! </span>' : ''}${esc(displayName(f, x))}${inCampaign(wb) && pendingAdvances(f, x) ? ' <span class="pill go">advance</span>' : ''}${x.command ? ' <span class="pill">in command</span>' : ''}</span>
           <span class="sub">${x.name.trim() ? esc(d.name) + ' · ' : ''}${esc(gear || (d.natural ? 'Natural weapons' : 'No wargear'))}</span>
           <span class="cost">${fighterCost(f, x)}s</span></button></li>`; }).join('')}</ul>` : `<div class="empty">None recruited</div>`}
     </section>`;
@@ -1233,12 +1515,13 @@ function viewBuild(wb, f, chk) {
         <div><label class="lbl" for="wb-origin">Origin (${esc(f.name)})</label>
           <select id="wb-origin" data-act="origin">${f.origins.map((or, i) => `<option value="${i}" ${i === wb.origin ? 'selected' : ''}>${esc(or.name)}, led by ${esc(fdef(f, or.leader).name)}</option>`).join('')}</select></div>
         ${o ? `<div class="hint"><b>Stronghold: ${esc(o.stronghold)}.</b> ${esc(o.hold)}${o.perks.length ? `<br><b>${esc(o.perks.join(' '))}</b>` : ''}</div>` : ''}
-        <details class="upg" ${(wb.upgrades || []).length ? 'open' : ''}><summary>Stronghold upgrades <span class="hint">${(wb.upgrades || []).length}/2 · campaign only</span></summary>
-          <p class="hint" style="margin:6px 0">Your stronghold gains 1 upgrade at level 2 (after 3 battles) and another at level 3 (after 8 battles). Leave these empty for a new warband.</p>
-          ${(UPGRADES[f.id] || []).map(u => { const on = (wb.upgrades || []).includes(u.id); const dis = !on && (wb.upgrades || []).length >= 2; const id = 'up-' + u.id;
+        <details class="upg" ${(wb.upgrades || []).length ? 'open' : ''}><summary>Stronghold upgrades <span class="hint">${(wb.upgrades || []).length}/${inCampaign(wb) ? strongholdLevel(wb) - 1 : 2} · campaign only</span></summary>
+          <p class="hint" style="margin:6px 0">Your stronghold gains 1 upgrade at level 2 (after 3 battles) and another at level 3 (after 8 battles).${inCampaign(wb) ? ` After ${wb.campaign.battles.length} battle${wb.campaign.battles.length === 1 ? '' : 's'} yours is level ${strongholdLevel(wb)}.` : ' Leave these empty for a new warband.'}</p>
+          ${(UPGRADES[f.id] || []).map(u => { const on = (wb.upgrades || []).includes(u.id); const dis = !on && (wb.upgrades || []).length >= (inCampaign(wb) ? strongholdLevel(wb) - 1 : 2); const id = 'up-' + u.id;
             return `<label class="opt ${on ? 'on' : ''} ${dis ? 'off' : ''}" for="${id}"><input type="checkbox" id="${id}" data-act="upgrade" data-v="${u.id}" ${on ? 'checked' : ''} ${dis ? 'disabled' : ''}><b>${esc(u.name)}</b><span class="t">${esc(u.text)}</span></label>`; }).join('')}
         </details>
       </div>
+      ${inCampaign(wb) ? '' : `<div class="panel row camp-cta"><span><b>Ready to play?</b> Start the campaign to track silver, experience and injuries.</span><button class="btn small" data-act="tab" data-v="campaign">Campaign</button></div>`}
       ${ui.showIssues || chk.list.length ? `<div class="panel stack"><h3 style="font-family:var(--f-display);font-weight:400;font-size:1.45rem">Rules check</h3>${issuesBlock(chk, f, wb)}</div>` : ''}
       <button class="btn primary" id="recruit-btn" data-act="recruit">+ Recruit a fighter</button>
       <div class="panel stack">${groups}</div>
@@ -1250,7 +1533,7 @@ function viewBuild(wb, f, chk) {
 function statRow(s, mod) {
   const cols = [['mv', 'Move'], ['bl', 'Blade'], ['bw', 'Bow'], ['ar', 'Armour'], ['ini', 'Init.'], ['wp', 'Will'], ['li', 'Life']];
   const fmt = (k, v) => v === '-' ? '-' : k === 'mv' ? (typeof v === 'number' ? v + '"' : v + '"') : (k === 'bl' || k === 'bw' || k === 'ar') ? v + '+' : v;
-  return `<div class="stats-wrap"><table class="stats"><thead><tr>${cols.map(c => `<th scope="col">${c[1]}</th>`).join('')}</tr></thead><tbody><tr>${cols.map(([k]) => `<td class="${mod[k] ? 'mod' : ''}">${fmt(k, s[k])}</td>`).join('')}</tr></tbody></table></div>`;
+  return `<div class="stats-wrap"><table class="stats"><thead><tr>${cols.map(c => `<th scope="col">${c[1]}</th>`).join('')}</tr></thead><tbody><tr>${cols.map(([k]) => `<td class="${mod[k] === 'bad' ? 'mod bad' : mod[k] ? 'mod' : ''}">${fmt(k, s[k])}</td>`).join('')}</tr></tbody></table></div>`;
 }
 function traitChips(traits) { return traits.length ? traits.map(t => `<span class="trait" title="${esc(TRAIT_TIPS[t.replace(/ 0-\d+/, '')] || (t.startsWith('Rare') ? 'Limited across the warband' : ''))}">${esc(t)}</span>`).join('') : '-'; }
 // Polearm: with a held item (e.g. a shield) the weapon gains Unwieldy.
@@ -1279,10 +1562,12 @@ function viewFighter(wb, f, x, chk) {
     const cats = [['melee', 'Melee weapons'], ['item', 'Held items'], ['ranged', 'Ranged weapons'], ['armour', 'Armour']];
     const groupsHtml = (k === 'i1' || k === 'i2') ? opts.map(id => `<option value="${id}" ${cur === id ? 'selected' : ''}>${esc(f.items[id].name)} · ${f.items[id].cost}s</option>`).join('')
       : cats.map(([c, cl]) => { const g = opts.filter(id => f.items[id].cat === c); return g.length ? `<optgroup label="${cl}">${g.map(id => `<option value="${id}" ${cur === id ? 'selected' : ''}>${esc(f.items[id].name)} · ${f.items[id].cost}s</option>`).join('')}</optgroup>` : ''; }).join('');
-    return `<div><label class="lbl" for="g-${k}">${label}</label><select id="g-${k}" data-act="gear" data-slot="${k}"><option value="">None</option>${groupsHtml}</select></div>`;
+    const stashOpts = inCampaign(wb) ? wb.campaign.stash.filter(st => opts.includes(st.item)) : [];
+    const stashHtml = stashOpts.length ? `<optgroup label="From your stash (free)">${stashOpts.map(st => `<option value="stash:${st.id}">${esc(f.items[st.item].name)} · stash</option>`).join('')}</optgroup>` : '';
+    return `<div><label class="lbl" for="g-${k}">${label}</label><select id="g-${k}" data-act="gear" data-slot="${k}"><option value="">None${inCampaign(wb) && cur && !fixed.has(cur) ? ' (to stash)' : ''}</option>${stashHtml}${inCampaign(wb) ? groupsHtml.replace(/<optgroup label="/g, '<optgroup label="Buy: ') : groupsHtml}</select></div>`;
   }).join('');
   // Skills
-  const takenBy = {}; wb.fighters.forEach(y => { if (y.uid === x.uid) return; const dy = fdef(f, y.fid); [...(dy.freeSkills || []), ...y.skills].forEach(sk => takenBy[sk] = displayName(f, y)); });
+  const takenBy = {}; wb.fighters.forEach(y => { if (y.uid === x.uid) return; const dy = fdef(f, y.fid); allSkills(dy, y).forEach(sk => takenBy[sk] = displayName(f, y)); }); advSkills(x).forEach(sk => takenBy[sk] = 'this fighter (advance)');
   const tables = eligibleTables(f, d);
   const nSkills = d.skills || 0;
   const skillHtml = nSkills ? `<section class="sec panel"><h3>Skills <small>Pick ${nSkills} · ${x.skills.length} chosen</small></h3>
@@ -1312,11 +1597,11 @@ function viewFighter(wb, f, x, chk) {
       </div>
       <div><label class="lbl" for="f-name">Fighter name</label><input type="text" id="f-name" value="${esc(x.name)}" placeholder="${esc(d.name)}" data-act="fname"></div>
       ${statRow(s, mod)}
-      ${Object.keys(mod).length ? '<p class="hint">Highlighted values include wargear or mutations.</p>' : ''}
+      ${Object.keys(mod).length ? `<p class="hint">Highlighted values include wargear${inCampaign(wb) ? ', advances' : ''} or mutations${Object.values(mod).includes('bad') ? '; red values are lowered by injuries' : ''}.</p>` : ''}
       ${iss.length ? `<ul class="issues">${iss.map(i => `<li class="issue ${i.level}"><span class="tag">${i.level === 'error' ? 'Fix' : 'To do'}</span><span>${esc(i.msg)}</span></li>`).join('')}</ul>` : ''}
     </section>
     <section class="sec panel"><h3>Wargear <small>${d.noGear ? 'Cannot take other wargear' : 'From the ' + esc(lists) + ' (' + esc(f.armoury) + ')'}</small></h3>
-      ${d.noGear ? '' : `<p class="hint" style="margin-top:0">Up to 2 melee weapons (held items like shields use a melee slot), 1 ranged weapon, 1 armour and 2 items. Only 1 two-handed weapon.</p><div class="slots">${slotHtml}</div>`}
+      ${d.noGear ? '' : `<p class="hint" style="margin-top:0">Up to 2 melee weapons (held items like shields use a melee slot), 1 ranged weapon, 1 armour and 2 items. Only 1 two-handed weapon.${inCampaign(wb) ? ' Buying is paid from the treasury; removed wargear goes to the stash.' : ''}</p><div class="slots">${slotHtml}</div>`}
       ${d.noGear && (d.fixed || []).length ? `<div class="locked">${(d.fixed || []).map(id => esc(f.items[id].name)).join(', ')} (included)</div>` : ''}
       ${weapons.length ? `<div style="margin-top:14px">${weaponTable(weapons, poleHeld)}</div>` : ''}
       ${extras.length ? `<ul class="rules" style="margin-top:12px">${extras.map(i => `<li><b>${esc(i.name)}${i.cat === 'armour' ? ` (Armour ${i.sv}+)` : i.held ? ' (Held item)' : ''}${rareOf(i) ? ` · Rare 0-${rareOf(i)}` : ''}.</b> ${esc(i.text)}</li>`).join('')}</ul>` : ''}
@@ -1324,13 +1609,14 @@ function viewFighter(wb, f, x, chk) {
     ${optHtml}${skillHtml}${spellHtml}
     ${d.rules && d.rules.length ? `<section class="sec panel"><h3>Special rules</h3><ul class="rules">${d.rules.map(r => `<li><b>${esc(r.name)}:</b> ${esc(r.text)}</li>`).join('')}</ul>
       ${d.alt ? `<div style="margin-top:12px"><span class="lbl">${esc(d.alt.name)} profile</span>${statRow(d.alt.s, {})}${weaponTable(d.alt.natural.map(id => ({ id, ...f.items[id] })), false)}</div>` : ''}</section>` : ''}
-    <section class="sec panel"><h3>Starting experience <small>${d.xp[1] ? `${d.xp[0] ? d.xp[0] + ' + ' : ''}d6` : 'Fixed'}</small></h3>
+    ${fighterCampaignHtml(wb, f, x)}
+    ${inCampaign(wb) ? '' : `<section class="sec panel"><h3>Starting experience <small>${d.xp[1] ? `${d.xp[0] ? d.xp[0] + ' + ' : ''}d6` : 'Fixed'}</small></h3>
       <div class="xp">${d.xp[1] ? `<span>${d.xp[0]} +</span><label class="lbl" for="xp-roll" style="margin:0">d6 roll</label><input type="number" id="xp-roll" min="1" max="6" value="${x.xpRoll}" data-act="xp"><button class="btn small" data-act="reroll">Roll again</button>` : ''}
       <span>Total</span><span class="tot">${fighterXp(x)} XP · Rank ${rankOf(fighterXp(x))}</span></div>
-      <p class="hint">Experience counts towards your warband rating, not your silver.</p></section>
+      <p class="hint">Experience counts towards your warband rating, not your silver.</p></section>`}
     <section class="panel row">
-      <button class="btn" data-act="dup">Duplicate fighter</button>
-      ${confirming ? `<span class="confirm">Remove ${esc(displayName(f, x))}? <button class="btn small danger" data-act="del-yes">Remove</button><button class="btn small" data-act="del-no">Keep</button></span>` : `<button class="btn danger" data-act="del">Remove fighter</button>`}
+      ${inCampaign(wb) ? '' : '<button class="btn" data-act="dup">Duplicate fighter</button>'}
+      ${confirming ? `<span class="confirm">${inCampaign(wb) ? `Undo recruiting ${esc(displayName(f, x))} and refund ${fighterCost(f, x)}s?` : `Remove ${esc(displayName(f, x))}?`} <button class="btn small danger" data-act="del-yes">${inCampaign(wb) ? 'Undo and refund' : 'Remove'}</button><button class="btn small" data-act="del-no">Keep</button></span>` : `<button class="btn ${inCampaign(wb) ? '' : 'danger'}" data-act="del">${inCampaign(wb) ? 'Recruited by mistake' : 'Remove fighter'}</button>`}
     </section>
   </div>`;
 }
@@ -1338,7 +1624,9 @@ function viewFighter(wb, f, x, chk) {
 function viewRecruit(wb, f) {
   const t = totals(wb);
   return `<div class="stack"><button class="btn back-btn" data-act="back">← Back to roster</button>
-  <section class="panel stack"><div class="sheet-head"><div><h2 style="font-family:var(--f-display);font-weight:400;font-size:2.1rem">Recruit a fighter</h2><div class="kw">${esc(f.name)} · ${t.left} silver left · ${t.count}/${MAX_FIGHTERS} fighters</div></div></div>
+  <section class="panel stack"><div class="sheet-head"><div><h2 style="font-family:var(--f-display);font-weight:400;font-size:2.1rem">Recruit a fighter</h2><div class="kw">${esc(f.name)} · ${t.left} silver ${inCampaign(wb) ? 'in the treasury' : 'left'} · ${t.count}/${MAX_FIGHTERS} fighters</div></div></div>
+  ${inCampaign(wb) ? (() => { const hasLC = wb.fighters.some(x => ['Leader', 'Champion'].includes(fdef(f, x.fid).type)); const hench = wb.fighters.filter(x => fdef(f, x.fid).type === 'Henchman').length;
+    return !hasLC ? '<p class="note">With no Leader or Champion left, your next recruit must be a Leader or Champion.</p>' : hench < 5 ? `<p class="note">You have ${hench} Henchmen. Recruit only Henchmen until you have 5.</p>` : '<p class="hint" style="margin:0">Recruits are paid from the treasury. Their wargear is bought separately on their sheet.</p>'; })() : ''}
   ${TYPES.map(ty => { const ds = f.fighters.filter(d => d.type === ty.key); if (!ds.length) return '';
     const n = wb.fighters.filter(x => { const d = fdef(f, x.fid); return countsAs(f, wb, d) === ty.key; }).length;
     return `<div class="rec-group"><h3>${ty.plural} <span class="hint" style="font-family:var(--f-body);font-size:1rem">${ty.key === 'Henchman' ? 'at least 5' : 'up to ' + ty.max} · you have ${n}</span></h3>
@@ -1356,38 +1644,42 @@ function viewRecruit(wb, f) {
 function rosterText(wb, f) {
   const t = totals(wb); const o = f.origins[wb.origin];
   const ups = (wb.upgrades || []).map(id => ((UPGRADES[f.id] || []).find(u => u.id === id) || {}).name).filter(Boolean);
-  const lines = [`${wb.name || 'Unnamed warband'}`, `${f.name} · ${o ? o.name : ''} · Stronghold: ${o ? o.stronghold : ''}${ups.length ? ' (' + ups.join(', ') + ')' : ''}`, `Spent ${t.cost}s · Stash ${Math.max(0, t.left)}s · Warband rating ${t.rating}`, ''];
+  const lines = [`${wb.name || 'Unnamed warband'}`, `${f.name} · ${o ? o.name : ''} · Stronghold: ${o ? o.stronghold : ''}${ups.length ? ' (' + ups.join(', ') + ')' : ''}`, inCampaign(wb) ? `Treasury ${t.left}s · ${wb.campaign.battles.length} battles · stronghold level ${strongholdLevel(wb)} · Warband rating ${t.rating}` : `Spent ${t.cost}s · Stash ${Math.max(0, t.left)}s · Warband rating ${t.rating}`, ''];
   wb.fighters.forEach(x => { const d = fdef(f, x.fid); const { s } = effStats(f, x);
     lines.push(`${displayName(f, x)} (${d.name}, ${d.type}) ${fighterCost(f, x)}s, ${fighterXp(x)} XP, rank ${rankOf(fighterXp(x))}`);
     lines.push(`  M ${s.mv}" Bl ${s.bl}+ Bw ${s.bw}${s.bw === '-' ? '' : '+'} Ar ${s.ar}+ In ${s.ini} Wp ${s.wp} Li ${s.li}`);
     const g = [...(d.natural || []).map(id => f.items[id].name), ...gearItems(f, x).map(i => i.name)]; if (g.length) lines.push(`  Wargear: ${g.join(', ')}`);
-    const sk = [...(d.freeSkills || []), ...x.skills]; if (sk.length) lines.push(`  Skills: ${sk.join(', ')}`);
-    if (x.spells.length) lines.push(`  Signature spells: ${x.spells.join(', ')}`);
+    const sk = allSkills(d, x); if (sk.length) lines.push(`  Skills: ${sk.join(', ')}`);
+    if (allSpells(x).length) lines.push(`  Signature spells: ${allSpells(x).join(', ')}`);
+    if ((x.injuries || []).length) lines.push(`  Injuries: ${x.injuries.map(i => INJURIES[i.key].name + (i.perm ? ' (permanent)' : ' (temporary)')).join(', ')}`);
+    if (x.rot) lines.push(`  Black Rot: ${x.rot}/4`);
     if (x.opt) lines.push(`  Mutation: ${d.options.list.find(o => o.id === x.opt).name}`);
   });
+  if (inCampaign(wb) && wb.campaign.stash.length) { lines.push(''); lines.push(`Stash: ${wb.campaign.stash.map(st => f.items[st.item].name).join(', ')}`); }
   return lines.join('\n');
 }
 function viewSheet(wb, f, chk) {
   const t = totals(wb); const o = f.origins[wb.origin];
   const order = TYPES.map(ty => ty.key);
-  const xs = [...wb.fighters].sort((a, b) => order.indexOf(fdef(f, a.fid).type) - order.indexOf(fdef(f, b.fid).type));
+  const xs = [...wb.fighters].sort((a, b) => order.indexOf(typeNow(f, a)) - order.indexOf(typeNow(f, b)));
   return `<div class="stack">
     <section class="panel stack"><div class="sheet-head"><div><h2 style="font-family:var(--f-display);font-weight:400;font-size:2.2rem">${esc(wb.name || 'Unnamed warband')}</h2>
       <div class="kw">${esc(f.name)} · ${esc(o ? o.name : '')} · Stronghold: ${esc(o ? o.stronghold : '')}</div></div>
-      <div class="price"><b>${t.rating}</b><span>Warband rating · ${t.cost}s spent · stash ${Math.max(0, t.left)}s</span></div></div>
+      <div class="price"><b>${t.rating}</b><span>Warband rating · ${inCampaign(wb) ? `treasury ${t.left}s · ${wb.campaign.battles.length} battles` : `${t.cost}s spent · stash ${Math.max(0, t.left)}s`}</span></div></div>
       ${chk.list.length ? `<div class="issue error"><span class="tag">Fix</span><span>${chk.list.length} item${chk.list.length > 1 ? 's' : ''} still to sort out. See the Build tab.</span></div>` : ''}
       <div class="row"><button class="btn primary" id="pdf-roster" data-act="pdf-roster">Download roster PDF</button>
         <label class="row" for="pdf-cheat-inc" style="gap:8px;cursor:pointer"><input type="checkbox" id="pdf-cheat-inc" data-act="cheatinc" ${ui.cheatInc !== false ? 'checked' : ''} style="width:22px;height:22px;accent-color:var(--accent)">Add the battle cheat sheet</label></div>
       ${noDlNote()}
       <p class="hint" style="margin:0">The PDF has every fighter's profile with the full rules for their wargear, skills, spells and special rules.</p>
       <div class="row"><button class="btn" data-act="copytext">Copy roster as text</button><span class="hint">Paste it into a message or your campaign notes.</span></div></section>
+    ${inCampaign(wb) && wb.campaign.stash.length ? `<section class="panel"><b>Stash:</b> ${esc(wb.campaign.stash.map(st => f.items[st.item].name).join(', '))}</section>` : ''}
     <div class="sheet-grid">${xs.map(x => { const d = fdef(f, x.fid); const { s } = effStats(f, x);
       const g = [...(d.natural || []).map(id => f.items[id].name), ...gearItems(f, x).map(i => i.name)];
-      const sk = [...(d.freeSkills || []), ...x.skills];
+      const sk = allSkills(d, x);
       const cell = (l, v) => `<div><small>${l}</small><b>${v}</b></div>`;
-      return `<article class="card"><h3>${esc(displayName(f, x))}<span>${fighterCost(f, x)}s</span></h3><div class="kw">${esc(d.name)} · ${esc(d.type)} · ${fighterXp(x)} XP · Rank ${rankOf(fighterXp(x))}</div>
+      return `<article class="card"><h3>${esc(displayName(f, x))}<span>${fighterCost(f, x)}s</span></h3><div class="kw">${esc(d.name)} · ${esc(x.command ? 'in command' : d.type)} · ${fighterXp(x)} XP · Rank ${rankOf(fighterXp(x))}</div>
         <div class="mini">${cell('Move', s.mv + '"')}${cell('Blade', s.bl + '+')}${cell('Bow', s.bw === '-' ? '-' : s.bw + '+')}${cell('Armour', s.ar + '+')}${cell('Init', s.ini)}${cell('Will', s.wp)}${cell('Life', s.li)}</div>
-        <dl><dt>Wargear</dt><dd>${esc(g.join(', ') || 'None')}</dd>${sk.length ? `<dt>Skills</dt><dd>${esc(sk.join(', '))}</dd>` : ''}${x.spells.length ? `<dt>Spells</dt><dd>${esc(x.spells.join(', '))}</dd>` : ''}${x.opt ? `<dt>Mutation</dt><dd>${esc(d.options.list.find(o => o.id === x.opt).name)}</dd>` : ''}</dl></article>`; }).join('')}</div>
+        <dl><dt>Wargear</dt><dd>${esc(g.join(', ') || 'None')}</dd>${sk.length ? `<dt>Skills</dt><dd>${esc(sk.join(', '))}</dd>` : ''}${allSpells(x).length ? `<dt>Spells</dt><dd>${esc(allSpells(x).join(', '))}</dd>` : ''}${(x.injuries || []).length ? `<dt>Injuries</dt><dd>${esc(x.injuries.map(i => INJURIES[i.key].name + (i.perm ? ' (perm.)' : ' (temp.)')).join(', '))}</dd>` : ''}${x.rot ? `<dt>Black Rot</dt><dd>${x.rot}/4</dd>` : ''}${x.opt ? `<dt>Mutation</dt><dd>${esc(d.options.list.find(o => o.id === x.opt).name)}</dd>` : ''}</dl></article>`; }).join('')}</div>
   </div>`;
 }
 
@@ -1434,11 +1726,11 @@ app.addEventListener('click', e => {
     case 'sel': ui.sel = v; ui.recruit = false; ui.detail = true; ui.confirm = null; ui.tab = 'build'; render(); if (window.innerWidth <= 880) window.scrollTo(0, 0); break;
     case 'recruit': ui.recruit = true; ui.detail = true; render(); if (window.innerWidth <= 880) window.scrollTo(0, 0); break;
     case 'back': ui.detail = false; ui.recruit = false; render(); break;
-    case 'add': { const nx = makeFighter(f, v, wb); wb.fighters.push(nx); ui.sel = nx.uid; ui.recruit = false; ui.detail = true; commit(); toast(`${fdef(f, v).name} recruited`); if (window.innerWidth <= 880) window.scrollTo(0, 0); break; }
+    case 'add': { const nx = makeFighter(f, v, wb); if (inCampaign(wb)) { nx.xpLog = []; nx.advances = []; nx.injuries = []; nx.rot = 0; ledger(wb, -baseCost(f, wb, fdef(f, v)), `Recruited ${fdef(f, v).name}`); } wb.fighters.push(nx); ui.sel = nx.uid; ui.recruit = false; ui.detail = true; commit(); toast(`${fdef(f, v).name} recruited`); if (window.innerWidth <= 880) window.scrollTo(0, 0); break; }
     case 'dup': { const c = JSON.parse(JSON.stringify(x)); c.uid = uid(); c.skills = []; c.name = c.name ? c.name + ' II' : ''; wb.fighters.splice(wb.fighters.indexOf(x) + 1, 0, c); ui.sel = c.uid; commit(); toast('Fighter duplicated. Skills were cleared, since each skill can only be on one fighter.'); break; }
     case 'del': ui.confirm = x.uid; render(); break;
     case 'del-no': ui.confirm = null; render(); break;
-    case 'del-yes': wb.fighters = wb.fighters.filter(y => y.uid !== x.uid); ui.sel = null; ui.confirm = null; ui.detail = false; commit(); toast('Fighter removed'); break;
+    case 'del-yes': if (inCampaign(wb)) ledger(wb, fighterCost(f, x, wb), `Refund: ${displayName(f, x)} recruited by mistake`); wb.fighters = wb.fighters.filter(y => y.uid !== x.uid); ui.sel = null; ui.confirm = null; ui.detail = false; commit(); toast('Fighter removed'); break;
     case 'reroll': x.xpRoll = d6(); commit(); break;
     case 'copytext': copy(rosterText(wb, f), 'Roster copied'); break;
     case 'sharelink': copy(SHARE_URL, 'Link copied'); break;
@@ -1456,13 +1748,73 @@ app.addEventListener('click', e => {
     case 'import': try { const w = JSON.parse(decodeURIComponent(escape(atob(ui.importText.trim())))); if (!w.faction || !fac(w.faction) || !Array.isArray(w.fighters)) throw 0; migrate(w); w.id = uid(); w.example = false; S.warbands.push(w); S.current = w.id; ui.importText = ''; ui.importErr = ''; ui.tab = 'build'; save(); render(); toast('Warband imported'); } catch (err) { ui.importErr = "That code wasn't recognised. Copy the whole code and try again."; render(); } break;
   }
 });
+// Campaign actions
+app.addEventListener('click', e => {
+  const b = e.target.closest('[data-act]'); if (!b || b.tagName === 'SELECT' || b.tagName === 'INPUT' || b.tagName === 'TEXTAREA') return;
+  const a = b.dataset.act, v = b.dataset.v; const wb = WB(); const f = fac(wb.faction); if (!wb) return;
+  const c = wb.campaign; const n = c ? c.battles.length : 0;
+  const byUid = id => wb.fighters.find(y => y.uid === id); const x = byUid(ui.sel);
+  const addXp = (y, amt, note) => { const before = rankOf(fighterXp(y)); y.xpLog.push({ id: uid(), n, amount: amt, note }); return rankOf(fighterXp(y)) > before; };
+  const res = (id, r) => { ui.injuryResult = Object.assign({}, ui.injuryResult, { [id]: r }); };
+  switch (a) {
+    case 'startc': startCampaign(wb); commit(); toast('Campaign started'); break;
+    case 'endc': ui.confirm = 'endc'; render(); break;
+    case 'endc-yes': delete wb.campaign; wb.fighters.forEach(y => { delete y.command; }); ui.confirm = null; commit(); toast('Campaign record deleted'); break;
+    case 'xp-add': { const y = byUid(v); const r = b.dataset.k === '5' ? 5 : roll(1); const note = b.dataset.k === '5' ? 'Took an enemy down' : b.dataset.k === 'lost' ? 'Lessons learned (lost)' : 'Took part'; const up = addXp(y, r, note); commit(); toast(`${displayName(f, y)} +${r} XP${up ? ', new rank: roll an advance' : ''}`); break; }
+    case 'xp-all': { let ups = 0, cnt = 0; wb.fighters.forEach(y => { const d = fdef(f, y.fid); if (noXp(d) || y.sat) return; cnt++; if (addXp(y, roll(1), b.dataset.k === 'lost' ? 'Lessons learned (lost)' : 'Took part')) ups++; }); commit(); toast(`${cnt} fighters gained d6 XP${ups ? `. ${ups} reached a new rank` : ''}`); break; }
+    case 'xp-custom': { const amt = parseInt(ui.xpAmt, 10); if (!amt) { toast('Enter how much experience to add.'); break; } const up = addXp(x, amt, (ui.xpNote || '').trim() || 'Bonus experience'); ui.xpAmt = ''; ui.xpNote = ''; commit(); toast(`+${amt} XP${up ? ', new rank: roll an advance' : ''}`); break; }
+    case 'xp-del': x.xpLog = x.xpLog.filter(q => q.id !== v); commit(); break;
+    case 'inj-roll': { const y = byUid(v); const r = rollInjury(wb, f, y); res(v, r); commit(); break; }
+    case 'kill': ui.sel = v; ui.tab = 'build'; ui.detail = true; ui.recruit = false; ui.confirm = 'kill-' + v; render(); window.scrollTo(0, document.body.scrollHeight); break;
+    case 'kill-yes': case 'retire-yes': { const wasLeader = isLeaderNow(f, x); const nm = displayName(f, x); removeFighter(wb, f, x, a === 'kill-yes' ? 'killed' : 'retired'); ui.sel = null; ui.detail = false; ui.confirm = null; if (ui.injuryResult) delete ui.injuryResult[x.uid]; commit();
+      toast(a === 'kill-yes' ? `${nm} was killed${wasLeader && wb.fighters.some(y => fdef(f, y.fid).type === 'Champion') ? '. Pick a Champion to assume command.' : ''}` : `${nm} retired. Wargear moved to the stash.`); break; }
+    case 'retire': ui.confirm = 'fate-' + x.uid; render(); break;
+    case 'income': { const k = INCOME_DICE[strongholdLevel(wb)]; const amt = roll(k) * 5; ledger(wb, amt, `Income (${k}d6x5)`); commit(); toast(`Income: +${amt} silver`); break; }
+    case 'treasure': { const k = Math.max(1, Math.min(20, parseInt(ui.trN, 10) || 1)); let amt = 0; for (let i = 0; i < k; i++) amt += roll(1, 3) * 5; ledger(wb, amt, `${k} treasure${k > 1 ? 's' : ''} (d3x5 each)`); commit(); toast(`Treasure: +${amt} silver`); break; }
+    case 'lg-add': { const amt = parseInt(ui.lgAmt, 10); if (!amt) { toast('Enter an amount, for example 25 or -40.'); break; } ledger(wb, amt, (ui.lgNote || '').trim() || (amt > 0 ? 'Silver gained' : 'Silver spent')); ui.lgAmt = ''; ui.lgNote = ''; ui.ledgerOpen = true; commit(); break; }
+    case 'lg-del': c.ledger = c.ledger.filter(q => q.id !== v); ui.ledgerOpen = true; commit(); break;
+    case 'battle-add': { c.battles.push({ id: uid(), n: n + 1, opponent: (ui.bOpp || '').trim(), scenario: ui.bScn === '' || ui.bScn == null ? null : +ui.bScn, result: ui.bRes || 'won' });
+      wb.fighters.forEach(y => { y.sat = !!y.missNext; y.missNext = false; }); ui.injuryResult = {}; ui.bOpp = ''; ui.bScn = ''; ui.advRoll = null;
+      const lv = c.battles.length === 3 ? 2 : c.battles.length === 8 ? 3 : 0; commit(); toast(lv ? `Battle ${n + 1} logged. Stronghold reaches level ${lv}: pick an upgrade on the Build tab.` : `Battle ${n + 1} logged. Work through the aftermath below.`); break; }
+    case 'b-del': c.battles = c.battles.filter(q => q.id !== v); c.battles.forEach((q, i) => q.n = i + 1); commit(); break;
+    case 'sell': { const st = c.stash.find(q => q.id === v); const it = f.items[st.item]; c.stash = c.stash.filter(q => q !== st); ledger(wb, Math.floor(it.cost / 2), `Sold ${it.name}`); commit(); toast(`Sold ${it.name} for ${Math.floor(it.cost / 2)} silver`); break; }
+    case 'st-del': c.stash = c.stash.filter(q => q.id !== v); commit(); break;
+    case 'st-buy': case 'st-find': { const id = ui.stItem || (document.getElementById('st-item') || {}).value; if (!id) break; c.stash.push({ id: uid(), item: id }); if (a === 'st-buy') ledger(wb, -f.items[id].cost, `Bought ${f.items[id].name} for the stash`); commit(); toast(`${f.items[id].name} added to the stash`); break; }
+    case 'adv-roll': ui.advRoll = { uid: x.uid, r: roll(1) }; ui.advPick = null; render(); break;
+    case 'adv-stat': x.advances.push({ id: uid(), kind: 'stat', stat: v, n }); ui.advRoll = null; ui.advPick = null; commit(); toast('Advance recorded'); break;
+    case 'adv-pick': ui.advPick = { uid: x.uid, kind: v }; render(); break;
+    case 'adv-skill': case 'adv-spell': x.advances.push({ id: uid(), kind: a === 'adv-skill' ? 'skill' : 'spell', name: v, n }); ui.advRoll = null; ui.advPick = null; commit(); toast(`${v} learned`); break;
+    case 'adv-del': x.advances = x.advances.filter(q => q.id !== v); commit(); break;
+    case 'inj-perm': { const i = x.injuries.find(q => q.id === v); i.perm = !i.perm; commit(); break; }
+    case 'inj-del': x.injuries = x.injuries.filter(q => q.id !== v); commit(); break;
+    case 'inj-recup': { const i = x.injuries.find(q => q.id === v); const r = roll(1); if (r >= 5) x.injuries = x.injuries.filter(q => q !== i); res(x.uid, { r, text: r >= 5 ? `${INJURIES[i.key].name} has healed` : `${INJURIES[i.key].name} has not healed yet` }); commit(); break; }
+    case 'recup-all': { let healed = 0, tried = 0; wb.fighters.forEach(y => { (y.injuries || []).filter(i => !i.perm && !(i.n >= n && n > 0)).forEach(i => { tried++; if (roll(1) >= 5) { healed++; y.injuries = y.injuries.filter(q => q !== i); } }); }); commit(); toast(tried ? `${tried} recovery roll${tried > 1 ? 's' : ''}: ${healed} injur${healed === 1 ? 'y' : 'ies'} healed` : 'No temporary injuries to roll for (new ones wait until the next aftermath).'); break; }
+    case 'rot': x.rot = Math.max(0, Math.min(4, (x.rot || 0) + (+v))); commit(); if (x.rot >= 4) toast('4th level of Black Rot: the fighter is killed.'); break;
+    case 'leech': { const r = roll(1); if (r >= 4 && x.rot) x.rot -= 1; res(x.uid, { r, text: r >= 4 ? 'The leeches drew out 1 level of Black Rot' : 'The leeches did nothing' }); commit(); break; }
+    case 'command': { const on = !x.command; wb.fighters.forEach(y => y.command = false); x.command = on; commit(); toast(on ? `${displayName(f, x)} assumes command` : 'Stepped down'); break; }
+  }
+});
 app.addEventListener('change', e => {
   const el = e.target; const a = el.dataset.act; if (!a) return; const wb = WB(); const f = fac(wb.faction); const x = wb.fighters.find(y => y.uid === ui.sel);
-  if (a === 'gear') { x.gear[el.dataset.slot] = el.value || null; commit(); }
+  if (a === 'gear') {
+    const slot = el.dataset.slot; const old = x.gear[slot]; const val = el.value; let nu = null;
+    if (!inCampaign(wb)) { x.gear[slot] = val || null; commit(); return; }
+    const fixed = new Set(fdef(f, x.fid).fixed || []);
+    if (val.startsWith('stash:')) { const st = wb.campaign.stash.find(q => q.id === val.slice(6)); if (st) { nu = st.item; wb.campaign.stash = wb.campaign.stash.filter(q => q !== st); } }
+    else if (val) { nu = val; ledger(wb, -f.items[val].cost, `Bought ${f.items[val].name} for ${displayName(f, x)}`); }
+    if (old && !fixed.has(old)) wb.campaign.stash.push({ id: uid(), item: old });
+    x.gear[slot] = nu; commit(); toast(old && !fixed.has(old) ? `${f.items[old].name} moved to the stash` : nu ? `${f.items[nu].name} equipped` : 'Slot cleared');
+  }
   else if (a === 'origin') { wb.origin = +el.value; commit(); }
   else if (a === 'skill') { const n = el.dataset.v; x.skills = el.checked ? [...x.skills, n] : x.skills.filter(s => s !== n); commit(); }
   else if (a === 'spell') { const n = el.dataset.v; x.spells = el.checked ? [...x.spells, n] : x.spells.filter(s => s !== n); commit(); }
-  else if (a === 'opt') { x.opt = el.checked ? el.dataset.v : null; commit(); }
+  else if (a === 'opt') { const d = fdef(f, x.fid); const before = x.opt ? d.options.list.find(o => o.id === x.opt).cost : 0; x.opt = el.checked ? el.dataset.v : null; const after = x.opt ? d.options.list.find(o => o.id === x.opt).cost : 0;
+    if (inCampaign(wb) && after !== before) ledger(wb, before - after, `${displayName(f, x)}: mutation ${after > before ? 'bought' : 'refunded'}`); commit(); }
+  else if (a === 'injsel') { if (el.value && !(x.injuries || []).some(i => i.key === el.value)) { x.injuries.push({ id: uid(), key: el.value, perm: false, n: wb.campaign.battles.length }); commit(); toast('Injury added as temporary. Tap "Make permanent" if needed.'); } else { el.value = ''; toast('That injury is already recorded.'); } }
+  else if (a === 'missnext') { x.missNext = el.checked; commit(); }
+  else if (a === 'bscn') ui.bScn = el.value;
+  else if (a === 'bres') ui.bRes = el.value;
+  else if (a === 'stitem') ui.stItem = el.value;
   else if (a === 'upgrade') { const v = el.dataset.v; wb.upgrades = el.checked ? [...(wb.upgrades || []), v] : (wb.upgrades || []).filter(u => u !== v); commit(); }
   else if (a === 'xp') { x.xpRoll = Math.max(0, Math.min(6, parseInt(el.value) || 0)); commit(); }
   else if (a === 'wbname' || a === 'fname') { commit(); }
@@ -1473,6 +1825,10 @@ app.addEventListener('input', e => {
   if (a === 'wbname') { wb.name = el.value; save(); const sm = app.querySelector('.brand small'); if (sm) sm.textContent = `${wb.name || 'Unnamed warband'} · ${f.name}`; }
   else if (a === 'fname') { const x = wb.fighters.find(y => y.uid === ui.sel); x.name = el.value; save(); const nm = app.querySelector(`#f-${x.uid} .nm`); if (nm) nm.textContent = displayName(f, x); const h = app.querySelector('.sheet-head h2'); if (h) h.textContent = displayName(f, x); }
   else if (a === 'nwname') ui.newWb.name = el.value;
+  else if (a === 'cnotes') { wb.campaign.notes = el.value; save(); }
+  else if (a === 'lgamt') ui.lgAmt = el.value; else if (a === 'lgnote') ui.lgNote = el.value;
+  else if (a === 'bopp') ui.bOpp = el.value; else if (a === 'trn') ui.trN = el.value;
+  else if (a === 'xpamt') ui.xpAmt = el.value; else if (a === 'xpnote') ui.xpNote = el.value;
   else if (a === 'imptext') ui.importText = el.value;
 });
 
