@@ -285,7 +285,7 @@ nav.wrap { margin-top: 10px; }
 .tab { font-family: var(--f-display); font-weight: 400; font-size: 1.3rem; color: var(--ink); border-bottom: 0; margin-bottom: 0; padding: 8px 16px 6px; opacity: .72; }
 .tab:hover { opacity: 1; }
 .tab[aria-selected="true"] { opacity: 1; background: var(--ink); color: var(--surface); clip-path: polygon(0 3px, 6px 0, calc(100% - 4px) 2px, 100% 0, 100% 100%, 0 100%); }
-@media (max-width: 600px) { .tab { font-size: 1.12rem; padding: 8px 7px 6px; } }
+
 
 /* Panels: paper boxes with a thin black rule, like the rulebook's sidebars */
 .panel, .card, .wbitem { background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--r); box-shadow: 2px 3px 0 rgba(0, 0, 0, .12); }
@@ -370,6 +370,29 @@ footer.wrap { padding-block: 8px 40px; }
 .credit h2 span { font-family: var(--f-body); font-style: italic; font-size: 1.15rem; white-space: nowrap; }
 .credit p { margin: 6px 0 0; font-size: 1.02rem; max-width: 62ch; }
 .credit-btn { font-size: 1.08rem; padding: 10px 20px; }
+/* Phone masthead: title and status above a pinned strip of numbers */
+.masthead { display: none; }
+@media (max-width: 600px) {
+  .masthead { display: flex; align-items: center; gap: 10px; padding-block: 12px 10px; background: var(--surface); border-bottom: 1px solid var(--line); }
+  .mh-t { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .mh-t > span { font-family: var(--f-display); font-size: 1.55rem; line-height: 1.05; }
+  .mh-t small { font-style: italic; color: var(--muted); font-size: .82rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .masthead .status { flex: none; min-height: 38px; padding: 4px 12px; font-size: .9rem; }
+  .bar .status { display: none; }
+  .bar .wrap { padding-block: 6px 7px; }
+  .tally { gap: 0; }
+  .tal { align-items: center; text-align: center; padding: 2px 4px; border-left: 1px solid var(--line); }
+  .tal:first-child { border-left: 0; }
+  .tal b { font-size: 1.1rem; }
+  .tal span { font-size: .62rem; letter-spacing: .08em; }
+  .bar { box-shadow: 0 2px 0 var(--line-strong); }
+  nav.wrap { margin-top: 8px; }
+  .tabs { display: flex; gap: 0; overflow: visible; padding-top: 4px; }
+  .tab { flex: 1 1 auto; font-family: var(--f-body); font-weight: 700; font-size: .78rem; text-transform: uppercase; letter-spacing: .01em; padding: 10px 3px 8px; text-align: center; white-space: nowrap; }
+  .tab[aria-selected="true"] { clip-path: none; }
+  main.wrap { padding-top: 14px; }
+}
+@media (max-width: 345px) { .tab { font-size: .7rem; padding-inline: 2px; } .mh-t > span { font-size: 1.35rem; } }
 .namerow { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 6px; }
 .namerow select { flex: 1 1 220px; width: auto; min-width: 0; }
 .brand .by { font-family: var(--f-body); font-size: .95rem; font-style: italic; color: var(--ink); white-space: nowrap; text-decoration: underline; text-decoration-color: var(--line); text-underline-offset: 3px; }
@@ -1655,8 +1678,10 @@ function render() {
   const active = document.activeElement && document.activeElement.id; const sy = window.scrollY;
   const wb = WB(); const f = fac(wb.faction); const t = totals(wb); const chk = check(wb);
   app.innerHTML = `
+  <div class="masthead wrap">${art('emblem', 34)}<div class="mh-t"><span>Black Death City</span><small class="wbline">${esc(wb.name || 'Unnamed warband')} · ${esc(f.name)}</small></div>
+    <button class="status ${chk.errors ? 'no' : chk.list.length ? 'todo' : 'ok'}" id="status-btn-m" data-act="issues">${chk.errors ? `${chk.errors} to fix` : chk.list.length ? `${chk.list.length} to do` : 'Legal'}</button></div>
   <header class="bar"><div class="wrap">
-    <div class="brand">${art('emblem', 44, 'emb')}<span class="brand-t"><span>Black Death City <a class="by" href="https://www.blackdeathcity.com" target="_blank" rel="noopener">by Sam Pearson</a></span><small>${esc(wb.name || 'Unnamed warband')} · ${esc(f.name)}</small></span></div>
+    <div class="brand">${art('emblem', 44, 'emb')}<span class="brand-t"><span>Black Death City <a class="by" href="https://www.blackdeathcity.com" target="_blank" rel="noopener">by Sam Pearson</a></span><small class="wbline">${esc(wb.name || 'Unnamed warband')} · ${esc(f.name)}</small></span></div>
     <div class="tally">
       <div class="tal ${t.left < 0 ? 'bad' : ''}"><b>${t.left}</b><span>${inCampaign(wb) ? 'Treasury' : '<span class="lg">Silver left</span><span class="sm">Silver</span>'}</span></div>
       ${inCampaign(wb) ? `<div class="tal"><b>${wb.campaign.battles.length}</b><span>Battles</span></div>` : `<div class="tal"><b>${t.cost}</b><span>Spent</span></div>`}
@@ -2045,7 +2070,7 @@ app.addEventListener('change', e => {
 });
 app.addEventListener('input', e => {
   const el = e.target; const a = el.dataset.act; const wb = WB(); const f = fac(wb.faction);
-  if (a === 'wbname') { wb.name = el.value; save(); const sm = app.querySelector('.brand small'); if (sm) sm.textContent = `${wb.name || 'Unnamed warband'} · ${f.name}`; }
+  if (a === 'wbname') { wb.name = el.value; save(); app.querySelectorAll('.wbline').forEach(sm => { sm.textContent = `${wb.name || 'Unnamed warband'} · ${f.name}`; }); }
   else if (a === 'fname') { const x = wb.fighters.find(y => y.uid === ui.sel); x.name = el.value; save(); const nm = app.querySelector(`#f-${x.uid} .nm`); if (nm) nm.textContent = displayName(f, x); const h = app.querySelector('.sheet-head h2'); if (h) h.textContent = displayName(f, x); }
   else if (a === 'nwname') ui.newWb.name = el.value;
   else if (a === 'cnotes') { wb.campaign.notes = el.value; save(); }
