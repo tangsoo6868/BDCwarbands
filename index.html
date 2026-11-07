@@ -352,6 +352,19 @@ table.stats td.mod.bad { color: var(--bad); }
 .choice b { font-size: 1.6rem; }
 .csl dt { font-family: var(--f-body); }
 table.cst td.k { font-family: var(--f-body); }
+
+/* Placeholder artwork */
+.art { display: inline-flex; flex: none; color: var(--ink); }
+.art svg { width: 100%; height: 100%; display: block; }
+.brand { flex-direction: row; align-items: center; gap: 12px; }
+.brand-t { display: flex; flex-direction: column; min-width: 0; }
+.wb-fac { display: flex; align-items: center; gap: 14px; min-width: 0; }
+.wb-fac > span:last-child, .wb-fac > div { min-width: 0; display: flex; flex-direction: column; }
+.wb-fac b { font-family: var(--f-display); font-weight: 400; font-size: 1.4rem; line-height: 1.1; }
+.choice-art { margin-bottom: 4px; }
+.fbtn[aria-current="true"] .art, .tab[aria-selected="true"] .art { color: var(--surface); }
+.foot { display: flex; gap: 10px; align-items: center; padding-block: 18px 30px; color: var(--muted); font-size: .88rem; font-style: italic; border-top: 1px solid var(--line-strong); }
+.foot a { color: var(--ink); }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
@@ -1142,6 +1155,46 @@ async function exportCheatPdf() {
   const k = pdfKit(); cheatToPdf(k); k.finish('Black Death City Playtest 1.10 - Battle cheat sheet');
   await savePdf(k, 'black-death-city-cheat-sheet.pdf');
 }
+// ---------- Placeholder artwork (original drawings) ----------
+// Swap any entry for licensed artwork later: each value is an inline SVG drawn in currentColor.
+const ART = {
+  // Cracked bell, tolling
+  emblem: `<svg viewBox="0 0 64 64"><g fill="currentColor">
+    <rect x="28" y="2" width="8" height="5" rx="1.5"/>
+    <path d="M32 7c-9.5 0-14 7.5-14 17.5V37c0 5.5-3.5 8-8 12h44c-4.5-4-8-6.5-8-12V24.5C46 14.5 41.5 7 32 7Z"/>
+    <rect x="7" y="49" width="50" height="5.5" rx="2"/>
+    <circle cx="32" cy="59" r="4"/></g>
+    <path d="M35 11l-4.5 8 5 5.5-4.5 9 3.5 6.5" fill="none" stroke="var(--surface)" stroke-width="2.2" stroke-linejoin="bevel"/>
+    <path d="M23 18c-1.5 3-2 6-2 9" fill="none" stroke="var(--surface)" stroke-width="1.6" stroke-linecap="round" opacity=".7"/>
+    <g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 24c-3 5-3 11 0 16"/><path d="M58 24c3 5 3 11 0 16"/><path d="M11 28c-1.5 3-1.5 6 0 9"/><path d="M53 28c1.5 3 1.5 6 0 9"/></g></svg>`,
+  // Guild Mercenaries: crossed swords over a coin
+  guild: `<svg viewBox="0 0 64 64"><circle cx="32" cy="33" r="13" fill="none" stroke="currentColor" stroke-width="2.4"/>
+    <g fill="currentColor"><g transform="rotate(-38 32 33)"><path d="M32 2l3.4 6V40h-6.8V8Z"/><rect x="22" y="40" width="20" height="4" rx="1.2"/><rect x="30" y="44" width="4" height="10"/><circle cx="32" cy="57.5" r="3.6"/></g>
+    <g transform="rotate(38 32 33)"><path d="M32 2l3.4 6V40h-6.8V8Z"/><rect x="22" y="40" width="20" height="4" rx="1.2"/><rect x="30" y="44" width="4" height="10"/><circle cx="32" cy="57.5" r="3.6"/></g></g>
+    <g stroke="var(--surface)" stroke-width="1.1"><path d="M32 6.5V38" transform="rotate(-38 32 33)"/><path d="M32 6.5V38" transform="rotate(38 32 33)"/></g></svg>`,
+  // Verminkin: hunched rat
+  vermin: `<svg viewBox="0 0 64 64"><path d="M15 43c-10-1-12 11-3 13 6 1.5 9 3 7 7" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/>
+    <g fill="currentColor"><path d="M12 44c0-12 10-19 22-18 3-6 10-9 16-6l3 3 8 5c1.5 1 1 3-1 3.4l-6 1.2c-2 7-7 12-15 13H20c-5 0-8-.5-8-1.6Z"/>
+    <path d="M22 46l-2 7h4l2-6ZM37 45l1 8h4l-1-8Z"/></g>
+    <circle cx="44" cy="22" r="4.5" fill="currentColor"/><circle cx="44" cy="22" r="2" fill="var(--surface)"/><circle cx="54" cy="27.5" r="1.5" fill="var(--surface)"/>
+    <g stroke="currentColor" stroke-width="1.1" stroke-linecap="round"><path d="M60 30l3.5-2M60 31.5h4M59.5 33l3.5 2"/></g>
+    <g stroke="var(--surface)" stroke-width="1" fill="none" opacity=".75"><path d="M18 40c3-6 8-9 14-10M22 43c3-5 7-7 12-8"/></g></svg>`,
+  // Death Covens: bat
+  coven: `<svg viewBox="0 0 64 64"><path fill="currentColor" d="M32 21c-2 0-3.2 1-3.8 2.4L27 18l-1.3 7.6C20 19 10 17.5 1.5 22c6 3.5 8.5 8.5 8.5 15 3.5-3 8-3 10.5.5 2-3.2 6-3.5 8.5 0L32 46l3-8.5c2.5-3.5 6.5-3.2 8.5 0 2.5-3.5 7-3.5 10.5-.5 0-6.5 2.5-11.5 8.5-15C54 17.5 44 19 38.3 25.6L37 18l-1.2 5.4C35.2 22 34 21 32 21Z"/>
+    <g fill="var(--surface)"><circle cx="30" cy="27" r="1.3"/><circle cx="34" cy="27" r="1.3"/><path d="M30.6 31.5l.9 2.2.9-2.2ZM31.6 31.5l.9 2.2.9-2.2Z"/></g>
+    <g fill="none" stroke="var(--surface)" stroke-width="1" opacity=".8"><path d="M24 27c-5 1-9 4-11 8M40 27c5 1 9 4 11 8M22 25c-6-1-11 0-15 2M42 25c6-1 11 0 15 2"/></g></svg>`,
+  // Blighted Cloister: bloated fly
+  cloister: `<svg viewBox="0 0 64 64"><g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round">
+    <path d="M27 26C17 22 5 26 3 35c-1 6 6 7 13 3 5-3 9-7 11-12Z"/><path d="M37 26c10-4 22 0 24 9 1 6-6 7-13 3-5-3-9-7-11-12Z"/></g>
+    <g fill="none" stroke="currentColor" stroke-width="1" opacity=".6"><path d="M26 27C18 28 11 31 6 35M26 28c-4 4-8 7-14 9M38 27c8 1 15 4 20 8M38 28c4 4 8 7 14 9"/></g>
+    <g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M26 33l-8 2-4 6M26 37l-6 6-1 8M38 33l8 2 4 6M38 37l6 6 1 8M27 29l-8-4-4 1M37 29l8-4 4 1"/></g>
+    <g fill="currentColor"><path d="M32 7c-5 0-8.5 3.5-8.5 7.5S27 21 32 21s8.5-2.5 8.5-6.5S37 7 32 7Z"/><ellipse cx="32" cy="27" rx="7" ry="6.5"/><path d="M32 31c-9 0-13 7-13 14 0 9 6 15 13 15s13-6 13-15c0-7-4-14-13-14Z"/></g>
+    <g fill="currentColor" stroke="var(--surface)" stroke-width="1.2"><ellipse cx="27" cy="13.5" rx="4.2" ry="4.8"/><ellipse cx="37" cy="13.5" rx="4.2" ry="4.8"/></g>
+    <g fill="var(--surface)" opacity=".85"><circle cx="25.6" cy="11.8" r="1"/><circle cx="35.6" cy="11.8" r="1"/><circle cx="27.4" cy="15.6" r=".6"/><circle cx="37.4" cy="15.6" r=".6"/></g>
+    <g fill="var(--surface)"><circle cx="27" cy="42" r="2.2"/><circle cx="36.5" cy="47" r="2.8"/><circle cx="29" cy="52.5" r="1.6"/><circle cx="38" cy="38.5" r="1.3"/><circle cx="33" cy="56" r="1.1"/></g>
+    <g stroke="currentColor" stroke-width="1.2" stroke-linecap="round"><path d="M19 40l-3-1M18 46h-3M19.5 52l-3 1.5M45 40l3-1M46 46h3M44.5 52l3 1.5"/></g></svg>`,
+};
+const art = (name, size, cls = '') => `<span class="art ${cls}" aria-hidden="true" style="width:${size}px;height:${size}px">${ART[name] || ''}</span>`;
 // ---------- Campaign mode (Chapter 5 of Playtest 1.10) ----------
 const STAT_NAMES = { mv: 'Move', bl: 'Blade', bw: 'Bow', ar: 'Armour', ini: 'Initiative', wp: 'Willpower', li: 'Life' };
 const INJURIES = {
@@ -1312,7 +1365,7 @@ function viewCampaign(wb, f) {
 }
 function viewCampaignStart(wb, f) {
   const chk = check(wb); const t = totals(wb);
-  return `<section class="panel stack" style="max-width:760px"><h2 class="dh2">Start the campaign</h2>
+  return `<section class="panel stack" style="max-width:760px"><div class="wb-fac">${art('emblem', 64)}<h2 class="dh2">Start the campaign</h2></div>
     <p>Campaign mode tracks your warband between battles: silver, battles and stronghold level, experience and advances, injuries, Black Rot, the stash, and who has fallen.</p>
     <ul class="rules"><li>Your treasury starts with the <b>${Math.max(0, t.left)} silver</b> left over from recruiting.</li>
       <li>From then on, recruiting and buying wargear is paid from the treasury, and removed wargear goes to the stash.</li>
@@ -1579,7 +1632,7 @@ function render() {
   const wb = WB(); const f = fac(wb.faction); const t = totals(wb); const chk = check(wb);
   app.innerHTML = `
   <header class="bar"><div class="wrap">
-    <div class="brand">Black Death City<small>${esc(wb.name || 'Unnamed warband')} · ${esc(f.name)}</small></div>
+    <div class="brand">${art('emblem', 44, 'emb')}<span class="brand-t">Black Death City<small>${esc(wb.name || 'Unnamed warband')} · ${esc(f.name)}</small></span></div>
     <div class="tally">
       <div class="tal ${t.left < 0 ? 'bad' : ''}"><b>${t.left}</b><span>${inCampaign(wb) ? 'Treasury' : '<span class="lg">Silver left</span><span class="sm">Silver</span>'}</span></div>
       ${inCampaign(wb) ? `<div class="tal"><b>${wb.campaign.battles.length}</b><span>Battles</span></div>` : `<div class="tal"><b>${t.cost}</b><span>Spent</span></div>`}
@@ -1592,7 +1645,8 @@ function render() {
   <nav class="wrap"><div class="tabs" role="tablist">
     ${[['build', 'Build', 'Build'], ['campaign', 'Campaign', 'Campaign'], ['sheet', 'Roster sheet', 'Roster'], ['cheat', 'Cheat sheet', 'Rules'], ['bands', 'My warbands', 'Bands']].map(([k, l, sh]) => `<button class="tab" role="tab" id="tab-${k}" aria-selected="${ui.tab === k}" data-act="tab" data-v="${k}"><span class="lg">${l}</span><span class="sm">${sh}</span></button>`).join('')}
   </div></nav>
-  <main class="wrap">${ui.tab === 'build' ? viewBuild(wb, f, chk) : ui.tab === 'campaign' ? viewCampaign(wb, f) : ui.tab === 'sheet' ? viewSheet(wb, f, chk) : ui.tab === 'cheat' ? viewCheat() : viewBands()}</main>`;
+  <main class="wrap">${ui.tab === 'build' ? viewBuild(wb, f, chk) : ui.tab === 'campaign' ? viewCampaign(wb, f) : ui.tab === 'sheet' ? viewSheet(wb, f, chk) : ui.tab === 'cheat' ? viewCheat() : viewBands()}</main>
+  <footer class="wrap foot"><span>${art('emblem', 22)}</span><span>An unofficial, free fan tool for <b>Black Death City</b> by Sam Pearson. Rules and game © Sam Pearson; get the rules and join the community at <a href="https://www.blackdeathcity.com" target="_blank" rel="noopener">BlackDeathCity.com</a>.</span></footer>`;
   const bar = app.querySelector('.bar'); if (bar) document.documentElement.style.setProperty('--barh', bar.offsetHeight + 'px');
   if (active) { const el = document.getElementById(active); if (el) el.focus({ preventScroll: true }); }
   window.scrollTo(0, sy);
@@ -1625,6 +1679,7 @@ function viewBuild(wb, f, chk) {
     <div class="col-roster stack">
       ${banner}
       <div class="panel stack">
+        <div class="wb-fac">${art(f.id, 46)}<span><b>${esc(f.name)}</b><span class="hint">${esc(f.blurb)}</span></span></div>
         <div><label class="lbl" for="wb-name">Warband name</label><input type="text" id="wb-name" value="${esc(wb.name)}" data-act="wbname"></div>
         <div><label class="lbl" for="wb-origin">Origin (${esc(f.name)})</label>
           <select id="wb-origin" data-act="origin">${f.origins.map((or, i) => `<option value="${i}" ${i === wb.origin ? 'selected' : ''}>${esc(or.name)}, led by ${esc(fdef(f, or.leader).name)}</option>`).join('')}</select></div>
@@ -1777,8 +1832,8 @@ function viewSheet(wb, f, chk) {
   const order = TYPES.map(ty => ty.key);
   const xs = [...wb.fighters].sort((a, b) => order.indexOf(typeNow(f, a)) - order.indexOf(typeNow(f, b)));
   return `<div class="stack">
-    <section class="panel stack"><div class="sheet-head"><div><h2 style="font-family:var(--f-display);font-weight:400;font-size:2.2rem">${esc(wb.name || 'Unnamed warband')}</h2>
-      <div class="kw">${esc(f.name)} · ${esc(o ? o.name : '')} · Stronghold: ${esc(o ? o.stronghold : '')}</div></div>
+    <section class="panel stack"><div class="sheet-head"><div class="wb-fac">${art(f.id, 64)}<div><h2 style="font-family:var(--f-display);font-weight:400;font-size:2.2rem">${esc(wb.name || 'Unnamed warband')}</h2>
+      <div class="kw">${esc(f.name)} · ${esc(o ? o.name : '')} · Stronghold: ${esc(o ? o.stronghold : '')}</div></div></div>
       <div class="price"><b>${t.rating}</b><span>Warband rating · ${inCampaign(wb) ? `treasury ${t.left}s · ${wb.campaign.battles.length} battles` : `${t.cost}s spent · stash ${Math.max(0, t.left)}s`}</span></div></div>
       ${chk.list.length ? `<div class="issue error"><span class="tag">Fix</span><span>${chk.list.length} item${chk.list.length > 1 ? 's' : ''} still to sort out. See the Build tab.</span></div>` : ''}
       <div class="row"><button class="btn primary" id="pdf-roster" data-act="pdf-roster">Download roster PDF</button>
@@ -1802,13 +1857,13 @@ function viewBands() {
   const list = `<section class="panel stack"><h2 style="font-family:var(--f-display);font-weight:400;font-size:2rem">My warbands</h2>
     <p class="hint" style="margin:0">Warbands are saved in this browser only. Use "Copy warband code" to back one up or move it to another device.</p>
     <ul class="wblist">${S.warbands.map(w => { const f = fac(w.faction); const t = totals(w); const cur = w.id === S.current;
-      return `<li class="wbitem ${cur ? 'cur' : ''}"><div><b>${esc(w.name || 'Unnamed warband')}</b>${w.example ? ' <span class="hint">(example)</span>' : ''}<div class="hint">${esc(f.name)} · ${w.fighters.length} fighters · rating ${t.rating}</div></div>
+      return `<li class="wbitem ${cur ? 'cur' : ''}"><div class="wb-fac">${art(w.faction, 38)}<div><b>${esc(w.name || 'Unnamed warband')}</b>${w.example ? ' <span class="hint">(example)</span>' : ''}<div class="hint">${esc(f.name)} · ${w.fighters.length} fighters · rating ${t.rating}</div></div></div>
         <div class="row">${cur ? '<span class="hint">Open</span>' : `<button class="btn small primary" data-act="open" data-v="${w.id}">Open</button>`}
         <button class="btn small" data-act="export" data-v="${w.id}">Copy warband code</button>
         ${ui.confirm === 'wb-' + w.id ? `<span class="confirm">Delete for good? <button class="btn small danger" data-act="wbdel-yes" data-v="${w.id}">Delete</button><button class="btn small" data-act="del-no">Keep</button></span>` : `<button class="btn small danger" data-act="wbdel" data-v="${w.id}" ${S.warbands.length < 2 ? 'disabled title="Keep at least one warband"' : ''}>Delete</button>`}</div></li>`; }).join('')}</ul></section>`;
   const create = `<section class="panel stack"><h2 style="font-family:var(--f-display);font-weight:400;font-size:2rem">New warband</h2>
     <div><label class="lbl" for="nw-name">Name</label><input type="text" id="nw-name" value="${esc(nw.name)}" data-act="nwname" placeholder="e.g. The Gallows Crows"></div>
-    <div><span class="lbl">1. Pick a faction</span><div class="choices">${FACTIONS.map(f => `<button class="choice" id="nf-${f.id}" data-act="nwfac" data-v="${f.id}" aria-pressed="${nw.faction === f.id}"><b>${esc(f.name)}</b><span>${esc(f.blurb)}</span></button>`).join('')}</div></div>
+    <div><span class="lbl">1. Pick a faction</span><div class="choices">${FACTIONS.map(f => `<button class="choice" id="nf-${f.id}" data-act="nwfac" data-v="${f.id}" aria-pressed="${nw.faction === f.id}">${art(f.id, 56, 'choice-art')}<b>${esc(f.name)}</b><span>${esc(f.blurb)}</span></button>`).join('')}</div></div>
     ${nw.faction ? `<div><span class="lbl">2. Pick an origin</span><div class="choices">${fac(nw.faction).origins.map((o, i) => `<button class="choice" id="no-${i}" data-act="nworg" data-v="${i}" aria-pressed="${nw.origin === i}"><b>${esc(o.name)}</b><span>Leader: ${esc(fdef(fac(nw.faction), o.leader).name)} · Stronghold: ${esc(o.stronghold)}${o.perks.length ? '. ' + esc(o.perks.join(' ')) : ''}</span></button>`).join('')}</div></div>` : ''}
     <div class="row"><button class="btn primary" id="nw-create" data-act="create" ${nw.faction && nw.origin !== null ? '' : 'disabled'}>Create warband</button><span class="hint">Your origin's leader is added for you.</span></div></section>`;
   const imp = `<section class="panel stack"><h2 style="font-family:var(--f-display);font-weight:400;font-size:2rem">Import a warband</h2>
