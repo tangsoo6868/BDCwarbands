@@ -110,6 +110,7 @@ textarea { min-height: 120px; font-family: ui-monospace, Menlo, Consolas, monosp
 .issues { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
 .issue { padding: 8px 12px; border-radius: var(--r); font-size: .95rem; display: flex; gap: 8px; align-items: baseline; }
 .issue.error { background: var(--bad-soft); color: var(--bad); }
+.sync-status.error { color: var(--bad); font-weight: 700; }
 .issue.warn { background: var(--warn-soft); color: var(--warn); }
 .issue .tag { font-family: var(--f-label); font-weight: 700; letter-spacing: .05em; flex: none; }
 .issue button { background: none; border: 0; padding: 0; color: inherit; text-decoration: underline; cursor: pointer; font-weight: 700; text-align: left; }
@@ -1467,6 +1468,180 @@ function fighterCampaignHtml(wb, f, x) {
     ${cmd}${xpPart}${advPart}${injPart}
     <div class="row">${fate}</div></section>`;
 }
+// ---------- Sync across devices (website only; Supabase) ----------
+// Fill these in from Supabase: Project Settings > API (Project URL and the anon/publishable key).
+// The key is meant to be public; row-level security keeps each player's warbands private.
+const SYNC_URL = '', SYNC_KEY = '';
+const SYNC_ON = !(window.claude && window.claude.use) && !!SYNC_URL && !!SYNC_KEY;
+const SESS_KEY = 'bdc-sync-session';
+const sy = { sess: null, state: 'idle', msg: '', last: 0, email: '', sent: false, code: '', timer: null, busy: false, again: false, refreshing: null, err: '' };
+const syncSeen = new Map();
+
+// Each warband carries an "updated" time so the newest copy wins when two devices disagree.
+function wbSig(w) { const { updated, ...rest } = w; return JSON.stringify(rest); }
+function stampChanges() {
+  const now = Date.now();
+  S.warbands.forEach(w => { const sig = wbSig(w); if (syncSeen.get(w.id) !== sig) { w.updated = now; syncSeen.set(w.id, sig); } });
+}
+function seedSeen() { syncSeen.clear(); S.warbands.forEach(w => syncSeen.set(w.id, wbSig(w))); }
+function markDeleted(id) { S.deleted = S.deleted || {}; S.deleted[id] = Date.now(); }
+
+function mergeStores(loc, rem) {
+  const del = { ...(rem.deleted || {}) };
+  Object.entries(loc.deleted || {}).forEach(([k, t]) => { if (!(del[k] >= t)) del[k] = t; });
+  const cut = Date.now() - 180 * 864e5; Object.keys(del).forEach(k => { if (del[k] < cut) delete del[k]; });
+  const byId = new Map();
+  const add = (w, remote) => {
+    if (!w || !w.id || w.example || !fac(w.faction) || !Array.isArray(w.fighters)) return;
+    const cur = byId.get(w.id);
+    if (!cur || (w.updated || 0) > (cur.updated || 0)) byId.set(w.id, remote ? migrate(JSON.parse(JSON.stringify(w))) : w);
+  };
+  loc.warbands.forEach(w => add(w, false)); (rem.warbands || []).forEach(w => add(w, true));
+  const real = [...byId.values()].filter(w => !(del[w.id] >= (w.updated || 0)));
+  const locHadReal = loc.warbands.some(w => !w.example);
+  const examples = loc.warbands.filter(w => w.example);
+  let warbands = real.length && !locHadReal ? real : [...real, ...examples];
+  if (!warbands.length) warbands = [exampleWarband()];
+  const current = warbands.some(w => w.id === loc.current) ? loc.current : warbands[0].id;
+  return { ...loc, warbands, deleted: del, current };
+}
+const syncPayload = s => ({ warbands: s.warbands.filter(w => !w.example), deleted: s.deleted || {} });
+
+// ---- Supabase calls (plain fetch, no library) ----
+function jwtPayload(t) { try { const b = t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'); return JSON.parse(decodeURIComponent(escape(atob(b + '==='.slice((b.length + 3) % 4))))); } catch (e) { return null; } }
+function setSession(at, rt) {
+  const p = jwtPayload(at); if (!p || !p.sub || !rt) return false;
+  sy.sess = { access_token: at, refresh_token: rt, exp: p.exp || 0, id: p.sub, email: p.email || sy.email || '' };
+  try { localStorage.setItem(SESS_KEY, JSON.stringify(sy.sess)); } catch (e) {}
+  return true;
+}
+function clearSession() { sy.sess = null; try { localStorage.removeItem(SESS_KEY); } catch (e) {} }
+async function sbFetch(path, opts = {}, auth = true) {
+  const headers = { apikey: SYNC_KEY, 'Content-Type': 'application/json', ...(opts.headers || {}) };
+  if (auth) { await ensureFresh(); if (!sy.sess) { const e = new Error('signed out'); e.signedOut = true; throw e; } headers.Authorization = 'Bearer ' + sy.sess.access_token; }
+  const r = await fetch(SYNC_URL + path, { ...opts, headers });
+  const text = await r.text(); let body = null; try { body = text ? JSON.parse(text) : null; } catch (e) {}
+  if (!r.ok) {
+    const e = new Error((body && (body.msg || body.message || body.error_description || body.error)) || ('error ' + r.status)); e.status = r.status;
+    if (auth && r.status === 401) { clearSession(); e.signedOut = true; }
+    throw e;
+  }
+  return body;
+}
+async function ensureFresh() {
+  if (!sy.sess || sy.sess.exp - 90 > Date.now() / 1000) return;
+  if (!sy.refreshing) sy.refreshing = (async () => {
+    try {
+      const r = await sbFetch('/auth/v1/token?grant_type=refresh_token', { method: 'POST', body: JSON.stringify({ refresh_token: sy.sess.refresh_token }) }, false);
+      if (!setSession(r.access_token, r.refresh_token)) clearSession();
+    } catch (e) { if (e.status >= 400 && e.status < 500) clearSession(); else throw e; }
+    finally { sy.refreshing = null; }
+  })();
+  return sy.refreshing;
+}
+
+// ---- Pull, merge, push ----
+function writeLocal() { if (loadProblem) return; try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
+function syncQueue() { if (!SYNC_ON || !sy.sess) return; clearTimeout(sy.timer); sy.timer = setTimeout(syncNow, 1500); }
+async function syncNow() {
+  if (!SYNC_ON || !sy.sess || loadProblem) return;
+  if (sy.busy) { sy.again = true; return; }
+  sy.busy = true; clearTimeout(sy.timer); sy.state = 'syncing'; syncBadge();
+  try {
+    const rows = await sbFetch('/rest/v1/warband_sync?select=data&user_id=eq.' + encodeURIComponent(sy.sess.id));
+    const rem = rows && rows[0] && rows[0].data ? rows[0].data : { warbands: [], deleted: {} };
+    stampChanges();
+    const before = JSON.stringify(S);
+    S = mergeStores(S, rem); seedSeen();
+    const changed = JSON.stringify(S) !== before;
+    if (changed) writeLocal();
+    const out = syncPayload(S);
+    if (JSON.stringify(out) !== JSON.stringify({ warbands: rem.warbands || [], deleted: rem.deleted || {} })) {
+      await sbFetch('/rest/v1/warband_sync?on_conflict=user_id', { method: 'POST', headers: { Prefer: 'resolution=merge-duplicates,return=minimal' }, body: JSON.stringify({ user_id: sy.sess.id, data: out, updated_at: new Date().toISOString() }) });
+    }
+    sy.last = Date.now(); sy.state = 'ok'; sy.msg = '';
+    if (changed) safeRender();
+  } catch (e) {
+    if (e.signedOut) { sy.state = 'idle'; sy.err = 'You were signed out. Sign in again to keep syncing.'; safeRender(); }
+    else { sy.state = 'error'; sy.msg = navigator.onLine === false ? "You're offline. Changes will sync when you're back online." : "Couldn't sync just now (" + e.message + '). Your warbands are safe on this device.'; }
+  } finally {
+    sy.busy = false; syncBadge();
+    if (sy.again) { sy.again = false; syncNow(); }
+  }
+}
+// Don't redraw under someone's fingers while they type; the change shows on the next redraw.
+function safeRender() {
+  const a = document.activeElement;
+  if (!WB().fighters.some(x => x.uid === ui.sel)) { ui.sel = WB().fighters[0] ? WB().fighters[0].uid : null; ui.detail = false; }
+  if (a && app.contains(a) && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)) return;
+  render();
+}
+function ago(t) { const s = Math.round((Date.now() - t) / 1000); return s < 10 ? 'just now' : s < 60 ? `${s} seconds ago` : s < 3600 ? `${Math.round(s / 60)} min ago` : `${Math.round(s / 3600)} h ago`; }
+function syncLine() { return sy.state === 'syncing' ? 'Syncing…' : sy.state === 'error' ? sy.msg : sy.last ? `Synced ${ago(sy.last)}.` : 'Waiting to sync…'; }
+function syncBadge() { const el = document.getElementById('sync-status'); if (el) { el.textContent = syncLine(); el.classList.toggle('error', sy.state === 'error'); } }
+
+// ---- Sign in by emailed link or code ----
+async function syncSend() {
+  const email = sy.email.trim(); sy.err = '';
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { sy.err = 'Enter a valid email address.'; render(); return; }
+  sy.state = 'sending'; render();
+  try {
+    await sbFetch('/auth/v1/otp?redirect_to=' + encodeURIComponent(location.origin + location.pathname), { method: 'POST', body: JSON.stringify({ email, create_user: true }) }, false);
+    sy.sent = true; sy.state = 'idle';
+  } catch (e) { sy.state = 'idle'; sy.err = /rate|limit|seconds/i.test(e.message) ? 'Too many sign-in emails just now. Wait a while, then try again (or use the last email you were sent).' : /authori/i.test(e.message) ? "This builder can't email that address yet. Ask whoever runs it to set up email sending." : "Couldn't send the email (" + e.message + ').'; }
+  render();
+}
+async function syncVerify() {
+  const token = sy.code.replace(/\s/g, ''); sy.err = '';
+  if (!/^\d{6,10}$/.test(token)) { sy.err = 'Enter the number from the email.'; render(); return; }
+  sy.state = 'sending'; render();
+  try {
+    const r = await sbFetch('/auth/v1/verify', { method: 'POST', body: JSON.stringify({ type: 'email', email: sy.email.trim(), token }) }, false);
+    if (!setSession(r.access_token, r.refresh_token)) throw new Error('no session');
+    syncSignedIn();
+  } catch (e) { sy.state = 'idle'; sy.err = "That code didn't work. It may have expired; send a new email."; render(); }
+}
+function syncSignedIn() { sy.sent = false; sy.code = ''; sy.err = ''; sy.state = 'syncing'; toast('Signed in. Syncing your warbands…'); render(); syncNow(); }
+async function syncSignOut() {
+  const s = sy.sess; clearSession(); sy.state = 'idle'; sy.last = 0; render(); toast('Signed out. Your warbands stay on this device.');
+  if (s) try { await fetch(SYNC_URL + '/auth/v1/logout', { method: 'POST', headers: { apikey: SYNC_KEY, Authorization: 'Bearer ' + s.access_token } }); } catch (e) {}
+}
+
+function syncPanel() {
+  if (!SYNC_ON) return '';
+  const h = `<h2 style="font-family:var(--f-display);font-weight:400;font-size:2rem">Sync across devices</h2>`;
+  if (sy.sess) return `<section class="panel stack" id="sync-panel">${h}
+    <p style="margin:0">Signed in as <b>${esc(sy.sess.email || 'you')}</b>. Your warbands follow you to any phone, tablet or computer where you sign in with this email.</p>
+    <p class="hint sync-status" id="sync-status" style="margin:0">${esc(syncLine())}</p>
+    <div class="row"><button class="btn primary" id="sy-sync" data-act="sysync">Sync now</button><button class="btn" id="sy-out" data-act="syout">Sign out</button></div>
+    <p class="hint" style="margin:0">Signing out leaves your warbands on this device.</p></section>`;
+  const busy = sy.state === 'sending';
+  return `<section class="panel stack" id="sync-panel">${h}
+    <p class="hint" style="margin:0">Sign in with your email and your warbands will follow you between your phone, tablet and computer. No password: you'll get a sign-in email.</p>
+    <div><label class="lbl" for="sy-email">Email</label><input type="email" id="sy-email" data-act="syemail" autocomplete="email" inputmode="email" value="${esc(sy.email)}" placeholder="you@example.com"></div>
+    <div class="row"><button class="btn ${sy.sent ? '' : 'primary'}" id="sy-send" data-act="sysend" ${busy ? 'disabled' : ''}>${sy.sent ? 'Send another email' : 'Email me a sign-in link'}</button></div>
+    ${sy.sent ? `<p style="margin:0">Check your email and open the sign-in link <b>on this device</b>. If the email shows a code, you can type it here instead:</p>
+    <div class="row"><input type="text" id="sy-code" data-act="sycode" inputmode="numeric" autocomplete="one-time-code" maxlength="10" style="max-width:10em" value="${esc(sy.code)}" placeholder="Code"><button class="btn primary" id="sy-verify" data-act="syverify" ${busy ? 'disabled' : ''}>Sign in</button></div>` : ''}
+    ${sy.err ? `<p class="issue error" style="margin:0">${esc(sy.err)}</p>` : ''}</section>`;
+}
+
+// Called once after the first render.
+function syncInit() {
+  seedSeen();
+  if (!SYNC_ON) return;
+  try { const s = JSON.parse(localStorage.getItem(SESS_KEY)); if (s && s.access_token && s.refresh_token && s.id) sy.sess = s; } catch (e) {}
+  const hp = new URLSearchParams(location.hash.slice(1));
+  if (hp.get('access_token') || hp.get('error_description')) {
+    history.replaceState(null, '', location.pathname + location.search);
+    if (hp.get('access_token') && setSession(hp.get('access_token'), hp.get('refresh_token'))) { ui.tab = 'bands'; syncSignedIn(); }
+    else { ui.tab = 'bands'; sy.err = 'That sign-in link has expired or was already used. Send a new one.'; render(); }
+  } else if (sy.sess) syncNow();
+  const wake = () => { if (sy.sess && !sy.busy && Date.now() - sy.last > 15000) syncNow(); };
+  window.addEventListener('focus', wake);
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') wake(); });
+  window.addEventListener('online', () => { if (sy.sess) syncNow(); });
+  setInterval(() => { if (sy.sess && sy.state === 'ok') syncBadge(); }, 30000);
+}
 // ---------- Helpers ----------
 const BUDGET = 1000, MAX_FIGHTERS = 15;
 const SHARE_URL = (window.claude && window.claude.use) ? 'https://claude.ai/artifact/YRRq5js2SDaJZsu41uyo6N' : location.href.split('#')[0];
@@ -1538,7 +1713,7 @@ function migrate(wb) {
   });
   return wb;
 }
-function save() { if (loadProblem) return; try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
+function save() { if (loadProblem) return; stampChanges(); try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} syncQueue(); }
 const WB = () => S.warbands.find(w => w.id === S.current) || S.warbands[0];
 
 function makeFighter(f, id, wb) {
@@ -1919,7 +2094,7 @@ function viewSheet(wb, f, chk) {
 function viewBands() {
   const nw = ui.newWb;
   const list = `<section class="panel stack"><h2 style="font-family:var(--f-display);font-weight:400;font-size:2rem">My warbands</h2>
-    <p class="hint" style="margin:0">Warbands are saved in this browser only. Use "Copy warband code" to back one up or move it to another device.</p>
+    <p class="hint" style="margin:0">${SYNC_ON && sy.sess ? 'Warbands are saved on this device and synced to your account.' : `Warbands are saved in this browser only. ${SYNC_ON ? 'Sign in under Sync across devices to use them anywhere, or use' : 'Use'} "Copy warband code" to back one up or move it to another device.`}</p>
     <ul class="wblist">${S.warbands.map(w => { const f = fac(w.faction); const t = totals(w); const cur = w.id === S.current;
       return `<li class="wbitem ${cur ? 'cur' : ''}"><div class="wb-fac">${art(w.faction, 38)}<div><b>${esc(w.name || 'Unnamed warband')}</b>${w.example ? ' <span class="hint">(example)</span>' : ''}<div class="hint">${esc(f.name)} · ${w.fighters.length} fighters · rating ${t.rating}</div></div></div>
         <div class="row">${cur ? '<span class="hint">Open</span>' : `<button class="btn small primary" data-act="open" data-v="${w.id}">Open</button>`}
@@ -1941,7 +2116,7 @@ function viewBands() {
   const backups = `<section class="panel stack"><h2 style="font-family:var(--f-display);font-weight:400;font-size:2rem">Backups</h2>
     <p class="hint" style="margin:0">The builder keeps a daily copy of your warbands in this browser (last 10 days). Restoring adds the backed-up warbands alongside your current ones; nothing is deleted.</p>
     ${bks.length ? `<ul class="wblist">${bks.map(b => `<li class="wbitem"><div><b>${esc(b.k.slice(BACKUP_PREFIX.length))}</b><div class="hint">${esc(b.s.warbands.filter(w => !w.example).map(w => w.name || 'Unnamed warband').join(', ') || 'Example only')}</div></div><button class="btn small" data-act="restore" data-v="${esc(b.k)}">Restore</button></li>`).join('')}</ul>` : '<p class="hint" style="margin:0">No backups yet. One is made the first time you open the builder each day.</p>'}</section>`;
-  return `<div class="stack">${loadProblem ? `<div class="banner" role="alert"><span>Your saved warbands couldn't be read, so they have been left untouched and nothing will be saved over them. Tap the button to copy the saved data and send it to whoever looks after this builder.</span><button class="btn small" data-act="copyraw">Copy saved data</button></div>` : ''}${share}${create}${list}${imp}${backups}</div>`;
+  return `<div class="stack">${syncPanel()}${loadProblem ? `<div class="banner" role="alert"><span>Your saved warbands couldn't be read, so they have been left untouched and nothing will be saved over them. Tap the button to copy the saved data and send it to whoever looks after this builder.</span><button class="btn small" data-act="copyraw">Copy saved data</button></div>` : ''}${share}${create}${list}${imp}${backups}</div>`;
 }
 
 // ---------- Events ----------
@@ -1975,6 +2150,10 @@ app.addEventListener('click', e => {
     case 'epiroll': { const L = EPITHETS[f.id]; const i = Math.floor(Math.random() * 36); x.epithet = L[i]; commit(); toast(`Rolled ${d66Label(i)}: ${L[i]}`); break; }
     case 'fem': x.name = x.name.trim() + 'a'; commit(); break;
     case 'houseroll': { const i = Math.floor(Math.random() * 36); wb.name = 'House ' + NAMES.coven[i]; commit(); toast(`Rolled ${d66Label(i)}: House ${NAMES.coven[i]}`); break; }
+    case 'sysend': syncSend(); break;
+    case 'syverify': syncVerify(); break;
+    case 'sysync': syncNow(); break;
+    case 'syout': syncSignOut(); break;
     case 'copyraw': copy(loadProblem || '', 'Saved data copied'); break;
     case 'restore': { const bk = readBackup(v); if (!bk) { toast("That backup couldn't be read."); break; } const have = new Set(S.warbands.map(w => w.id)); let added = 0;
       bk.warbands.filter(w => !w.example).forEach(w => { migrate(w); if (have.has(w.id)) w = Object.assign(w, { id: uid(), name: (w.name || 'Warband') + ' (restored)' }); S.warbands.push(w); added++; });
@@ -1985,7 +2164,7 @@ app.addEventListener('click', e => {
     case 'open': S.current = v; ui.sel = null; ui.tab = 'build'; ui.detail = false; save(); render(); break;
     case 'export': { const w = S.warbands.find(w => w.id === v); copy(btoa(unescape(encodeURIComponent(JSON.stringify(w)))), 'Warband code copied'); break; }
     case 'wbdel': ui.confirm = 'wb-' + v; render(); break;
-    case 'wbdel-yes': S.warbands = S.warbands.filter(w => w.id !== v); if (S.current === v) S.current = S.warbands[0].id; ui.confirm = null; save(); render(); break;
+    case 'wbdel-yes': markDeleted(v); S.warbands = S.warbands.filter(w => w.id !== v); if (S.current === v) S.current = S.warbands[0].id; ui.confirm = null; save(); render(); break;
     case 'nwfac': ui.newWb.faction = v; ui.newWb.origin = null; render(); break;
     case 'nworg': ui.newWb.origin = +v; render(); break;
     case 'create': { const nf = fac(ui.newWb.faction); const w = { id: uid(), name: ui.newWb.name.trim() || 'New warband', faction: nf.id, origin: ui.newWb.origin, fighters: [] };
@@ -2078,9 +2257,10 @@ app.addEventListener('input', e => {
   else if (a === 'bopp') ui.bOpp = el.value; else if (a === 'trn') ui.trN = el.value;
   else if (a === 'xpamt') ui.xpAmt = el.value; else if (a === 'xpnote') ui.xpNote = el.value;
   else if (a === 'imptext') ui.importText = el.value;
+  else if (a === 'syemail') sy.email = el.value; else if (a === 'sycode') sy.code = el.value;
 });
 
 // Open on the leader of the current warband so the first view shows a filled sheet.
-(() => { const wb = WB(); if (wb.fighters[0]) ui.sel = wb.fighters[0].uid; ui.newWb = { name: '', faction: null, origin: null }; render(); })();
+(() => { const wb = WB(); if (wb.fighters[0]) ui.sel = wb.fighters[0].uid; ui.newWb = { name: '', faction: null, origin: null }; render(); syncInit(); })();
 </script>
 </body></html>
