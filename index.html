@@ -2116,7 +2116,7 @@ function viewBands() {
     <label class="lbl" for="imp">Paste a warband code</label><textarea id="imp" data-act="imptext">${esc(ui.importText)}</textarea>
     <div class="row"><button class="btn" id="imp-btn" data-act="import">Import</button>${ui.importErr ? `<span class="issue error">${esc(ui.importErr)}</span>` : ''}</div></section>`;
   const share = `<section class="panel stack"><h2 style="font-family:var(--f-display);font-weight:400;font-size:2rem">Share with your group</h2>
-    <p class="hint" style="margin:0">Send players this link so they can build their own warbands. Each player's warbands stay in their own browser. To share a finished warband, use <b>Copy warband code</b> below and have them paste it under <b>Import a warband</b>.</p>
+    <p class="hint" style="margin:0">Send players this link so they can build their own warbands. ${SYNC_ON ? 'Each player signs in with their own email, so their warbands stay private to them and follow them between devices.' : "Each player's warbands stay in their own browser."} To share a finished warband, use <b>Copy warband code</b> below and have them paste it under <b>Import a warband</b>.</p>
     <div class="sharelink" id="share-url">${esc(SHARE_URL)}</div>
     <div class="row"><button class="btn primary" id="share-copy" data-act="sharelink">Copy link</button><button class="btn" id="share-invite" data-act="shareinvite">Copy invite message</button></div></section>`;
   const bks = backupKeys().map(k => ({ k, s: readBackup(k) })).filter(b => b.s);
@@ -2166,7 +2166,7 @@ app.addEventListener('click', e => {
     case 'restore': { const bk = readBackup(v); if (!bk) { toast("That backup couldn't be read."); break; } const have = new Set(S.warbands.map(w => w.id)); let added = 0;
       bk.warbands.filter(w => !w.example).forEach(w => { migrate(w); if (have.has(w.id)) w = Object.assign(w, { id: uid(), name: (w.name || 'Warband') + ' (restored)' }); S.warbands.push(w); added++; });
       if (added) S.current = S.warbands[S.warbands.length - 1].id; save(); render(); toast(added ? `${added} warband${added > 1 ? 's' : ''} restored` : 'That backup only had the example warband.'); break; }
-    case 'shareinvite': copy(`Join the Black Death City campaign! Build your warband here: ${SHARE_URL}\n\nPick your faction and origin under My warbands, recruit your fighters on the Build tab, and fix anything the rules check flags. When you're done, go to My warbands, tap "Copy warband code" and send it to me so I can import it. The Cheat sheet tab has deployment, turns and actions for game night.`, 'Invite message copied'); break;
+    case 'shareinvite': copy(`Join the Black Death City campaign! Build your warband here: ${SHARE_URL}\n\n${SYNC_ON ? 'First, sign in with your email in the box at the top of the page (type the code from the email into the builder) so your warband is saved and follows you between your phone and computer.\n\n' : ''}Pick your faction and origin under My warbands, recruit your fighters on the Build tab, and fix anything the rules check flags. When you're done, go to My warbands, tap "Copy warband code" and send it to me so I can import it. The Cheat sheet tab has deployment, turns and actions for game night.`, 'Invite message copied'); break;
     case 'pdf-roster': exportRosterPdf(ui.cheatInc !== false); break;
     case 'pdf-cheat': exportCheatPdf(); break;
     case 'open': S.current = v; ui.sel = null; ui.tab = 'build'; ui.detail = false; save(); render(); break;
