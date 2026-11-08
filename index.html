@@ -80,7 +80,7 @@ main { padding-block: 18px 60px; }
 .stack { display: flex; flex-direction: column; gap: 16px; }
 .lbl { font-family: var(--f-label); font-size: .9rem; letter-spacing: .05em; color: var(--muted); display: block; margin-bottom: 4px; }
 .hint { color: var(--muted); font-size: .92rem; }
-input[type=text], input[type=number], select, textarea { width: 100%; min-height: 44px; padding: 8px 10px; border: 2px solid var(--line-strong); border-radius: var(--r); background: var(--surface); }
+input[type=text], input[type=email], input[type=number], select, textarea { width: 100%; min-height: 44px; padding: 8px 10px; border: 2px solid var(--line-strong); border-radius: var(--r); background: var(--surface); }
 select { cursor: pointer; }
 textarea { min-height: 120px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: .85rem; }
 
@@ -110,6 +110,7 @@ textarea { min-height: 120px; font-family: ui-monospace, Menlo, Consolas, monosp
 .issues { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
 .issue { padding: 8px 12px; border-radius: var(--r); font-size: .95rem; display: flex; gap: 8px; align-items: baseline; }
 .issue.error { background: var(--bad-soft); color: var(--bad); }
+.sync-welcome { border: 2px solid var(--ink); box-shadow: 4px 4px 0 var(--line-strong); }
 .sync-status.error { color: var(--bad); font-weight: 700; }
 .issue.warn { background: var(--warn-soft); color: var(--warn); }
 .issue .tag { font-family: var(--f-label); font-weight: 700; letter-spacing: .05em; flex: none; }
@@ -321,7 +322,7 @@ nav.wrap { margin-top: 10px; }
 .btn.primary { background: var(--ink); color: var(--surface); border-color: var(--ink); }
 .btn.primary:hover { background: var(--ink); filter: contrast(1.1); text-decoration: underline; }
 .btn.danger { color: var(--bad); border-color: var(--bad); }
-input[type=text], input[type=number], select, textarea { border: 1.5px solid var(--line-strong); border-radius: var(--r); background: var(--surface); }
+input[type=text], input[type=email], input[type=number], select, textarea { border: 1.5px solid var(--line-strong); border-radius: var(--r); background: var(--surface); }
 
 /* Tables: fully ruled, like the armoury pages */
 table.wp, table.stats { border-collapse: collapse; }
@@ -1607,22 +1608,28 @@ async function syncSignOut() {
   if (s) try { await fetch(SYNC_URL + '/auth/v1/logout', { method: 'POST', headers: { apikey: SYNC_KEY, Authorization: 'Bearer ' + s.access_token } }); } catch (e) {}
 }
 
-function syncPanel() {
+const LATER_KEY = 'bdc-sync-later';
+function syncLater() { try { return localStorage.getItem(LATER_KEY) === '1'; } catch (e) { return false; } }
+function syncDismiss() { try { localStorage.setItem(LATER_KEY, '1'); } catch (e) {} sy.err = ''; render(); toast('You can sign in any time from the Bands tab.'); }
+// Shown at the top of the Build tab until this browser signs in or the player says "Not now".
+function syncWelcome() { return SYNC_ON && !sy.sess && !syncLater() ? syncPanel(true) : ''; }
+function syncPanel(welcome = false) {
   if (!SYNC_ON) return '';
-  const h = `<h2 style="font-family:var(--f-display);font-weight:400;font-size:2rem">Sync across devices</h2>`;
+  const h = welcome ? `<h2 style="font-family:var(--f-display);font-weight:400;font-size:1.7rem;margin:0">Keep your warbands safe</h2>` : `<h2 style="font-family:var(--f-display);font-weight:400;font-size:2rem">Sync across devices</h2>`;
   if (sy.sess) return `<section class="panel stack" id="sync-panel">${h}
     <p style="margin:0">Signed in as <b>${esc(sy.sess.email || 'you')}</b>. Your warbands follow you to any phone, tablet or computer where you sign in with this email.</p>
     <p class="hint sync-status" id="sync-status" style="margin:0">${esc(syncLine())}</p>
     <div class="row"><button class="btn primary" id="sy-sync" data-act="sysync">Sync now</button><button class="btn" id="sy-out" data-act="syout">Sign out</button></div>
     <p class="hint" style="margin:0">Signing out leaves your warbands on this device.</p></section>`;
   const busy = sy.state === 'sending';
-  return `<section class="panel stack" id="sync-panel">${h}
-    <p class="hint" style="margin:0">Sign in with your email and your warbands will follow you between your phone, tablet and computer. No password: you'll get a sign-in email.</p>
+  return `<section class="panel stack ${welcome ? 'sync-welcome' : ''}" id="sync-panel">${h}
+    <p style="margin:0">${welcome ? 'Sign in with your email so your warbands are saved to your account and follow you to your phone, tablet and computer.' : 'Sign in with your email and your warbands will follow you between your phone, tablet and computer.'} No password needed.</p>
     <div><label class="lbl" for="sy-email">Email</label><input type="email" id="sy-email" data-act="syemail" autocomplete="email" inputmode="email" value="${esc(sy.email)}" placeholder="you@example.com"></div>
-    <div class="row"><button class="btn ${sy.sent ? '' : 'primary'}" id="sy-send" data-act="sysend" ${busy ? 'disabled' : ''}>${sy.sent ? 'Send another email' : 'Email me a sign-in link'}</button></div>
-    ${sy.sent ? `<p style="margin:0">Check your email and open the sign-in link <b>on this device</b>. If the email shows a code, you can type it here instead:</p>
-    <div class="row"><input type="text" id="sy-code" data-act="sycode" inputmode="numeric" autocomplete="one-time-code" maxlength="10" style="max-width:10em" value="${esc(sy.code)}" placeholder="Code"><button class="btn primary" id="sy-verify" data-act="syverify" ${busy ? 'disabled' : ''}>Sign in</button></div>` : ''}
-    ${sy.err ? `<p class="issue error" style="margin:0">${esc(sy.err)}</p>` : ''}</section>`;
+    <div class="row"><button class="btn ${sy.sent ? '' : 'primary'}" id="sy-send" data-act="sysend" ${busy ? 'disabled' : ''}>${sy.sent ? 'Send a new code' : 'Email me a sign-in code'}</button>${welcome && !sy.sent ? '<button class="btn" id="sy-later" data-act="sylater">Not now</button>' : ''}</div>
+    ${sy.sent ? `<div><label class="lbl" for="sy-code">Code from the email</label><div class="row"><input type="text" id="sy-code" data-act="sycode" inputmode="numeric" autocomplete="one-time-code" maxlength="10" style="max-width:10em" value="${esc(sy.code)}" placeholder="123456"><button class="btn primary" id="sy-verify" data-act="syverify" ${busy ? 'disabled' : ''}>Sign in</button></div></div>
+    <p class="hint" style="margin:0">Type the code here rather than tapping the link: links often open in a different browser, which would sign in that browser instead of this one.</p>` : ''}
+    ${sy.err ? `<p class="issue error" style="margin:0">${esc(sy.err)}</p>` : ''}
+    ${welcome && sy.sent ? '<div class="row"><button class="btn small" id="sy-later" data-act="sylater">Not now</button></div>' : ''}</section>`;
 }
 
 // Called once after the first render.
@@ -1906,7 +1913,7 @@ function viewBuild(wb, f, chk) {
   const detail = ui.recruit || !sel ? viewRecruit(wb, f) : viewFighter(wb, f, sel, chk);
   return `<div class="grid ${ui.detail ? 'detail-open' : ''}">
     <div class="col-roster stack">
-      ${banner}
+      ${syncWelcome()}${banner}
       <div class="panel stack">
         <div class="wb-fac">${art(f.id, 46)}<span><b>${esc(f.name)}</b><span class="hint">${esc(f.blurb)}</span></span></div>
         <div><label class="lbl" for="wb-name">Warband name</label><input type="text" id="wb-name" value="${esc(wb.name)}" data-act="wbname">
@@ -2154,6 +2161,7 @@ app.addEventListener('click', e => {
     case 'syverify': syncVerify(); break;
     case 'sysync': syncNow(); break;
     case 'syout': syncSignOut(); break;
+    case 'sylater': syncDismiss(); break;
     case 'copyraw': copy(loadProblem || '', 'Saved data copied'); break;
     case 'restore': { const bk = readBackup(v); if (!bk) { toast("That backup couldn't be read."); break; } const have = new Set(S.warbands.map(w => w.id)); let added = 0;
       bk.warbands.filter(w => !w.example).forEach(w => { migrate(w); if (have.has(w.id)) w = Object.assign(w, { id: uid(), name: (w.name || 'Warband') + ' (restored)' }); S.warbands.push(w); added++; });
