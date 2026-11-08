@@ -1471,7 +1471,7 @@ function fighterCampaignHtml(wb, f, x) {
 // ---------- Sync across devices (website only; Supabase) ----------
 // Fill these in from Supabase: Project Settings > API (Project URL and the anon/publishable key).
 // The key is meant to be public; row-level security keeps each player's warbands private.
-const SYNC_URL = '', SYNC_KEY = '';
+const SYNC_URL = 'https://yruyplnpwytqeusehtir.supabase.co', SYNC_KEY = 'sb_publishable_KDVneUSFMxMF1R_Dou5abw_lHaObVEM';
 const SYNC_ON = !(window.claude && window.claude.use) && !!SYNC_URL && !!SYNC_KEY;
 const SESS_KEY = 'bdc-sync-session';
 const sy = { sess: null, state: 'idle', msg: '', last: 0, email: '', sent: false, code: '', timer: null, busy: false, again: false, refreshing: null, err: '' };
